@@ -1,0 +1,78 @@
+{
+  "name": "carpet-studio-desktop",
+  "version": "1.4.0",
+  "private": true,
+  "description": "地毯价格计算器 Windows 桌面版",
+  "author": "Carpet Studio",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "postinstall": "npm --prefix frontend ci",
+    "build": "npm --prefix frontend run build",
+    "start": "npm run build && node scripts/start-desktop.cjs",
+    "pack": "npm run build && electron-builder --win --x64 --dir",
+    "dist": "npm run build && electron-builder --win --x64 && node scripts/export-prices.cjs",
+    "test:desktop": "node scripts/test-desktop.cjs",
+    "test:pricing": "node --test scripts/test-pricing.cjs",
+    "test:workspace": "node --test scripts/test-workspace.cjs",
+    "benchmark:desktop": "node scripts/benchmark-desktop.cjs",
+    "test:updates": "node --test scripts/test-updates.cjs"
+  },
+  "devDependencies": {
+    "electron": "45.3.1",
+    "electron-builder": "26.18.0",
+    "playwright-core": "^1.58.0"
+  },
+  "build": {
+    "appId": "com.carpetstudio.desktop",
+    "productName": "地毯工作台",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "desktop/assets"
+    },
+    "files": [
+      "desktop/main.cjs",
+      "desktop/preload.cjs",
+      "desktop/price-config.cjs",
+      "desktop/assets/icon.ico",
+      "config/prices.json",
+      "config/normalize-prices.mjs",
+      "frontend/src/assets/fonts/OFL*.txt",
+      "frontend/dist/**/*",
+      "desktop/weather.cjs",
+      "shared/weather.mjs",
+      "desktop/updates.cjs",
+      "config/github.json"
+    ],
+    "win": {
+      "icon": "desktop/assets/icon.ico",
+      "executableName": "地毯工作台",
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "portable": {
+      "artifactName": "地毯工作台.${ext}",
+      "useZip": true
+    },
+    "nsis": {
+      "artifactName": "地毯工作台-安装版.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "地毯工作台",
+      "installerLanguages": [
+        "zh_CN"
+      ],
+      "language": "2052"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fy-MoMing/DiTangongzuotai.git"
+  },
+  "homepage": "https://github.com/Fy-MoMing/DiTangongzuotai"
+}

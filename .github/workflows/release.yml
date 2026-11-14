@@ -1,0 +1,86 @@
+name: Build Windows release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing version tag, for example v1.4.0'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - name: Verify version tag
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:RELEASE_TAG -ne "v$version") { throw 'Tag must match the package.json version.' }
+          git rev-parse --verify "refs/tags/$env:RELEASE_TAG"
+          if ($LASTEXITCODE -ne 0) { throw 'Create and push the version tag first.' }
+      - run: npm ci
+      - run: npm run test:pricing
+      - run: npm run test:workspace
+      - run: npm run test:updates
+      - name: Build portable and installer
+        run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Verify packaged desktop
+        run: npm run test:desktop
+        env:
+          DESKTOP_TEST_EXE: ${{ github.workspace }}\release\win-unpacked\地毯工作台.exe
+      - name: Verify update panel
+        run: node scripts/test-updates-desktop.cjs
+        env:
+          DESKTOP_TEST_EXE: ${{ github.workspace }}\release\win-unpacked\地毯工作台.exe
+      - name: Prepare release files
+        shell: pwsh
+        run: |
+          Copy-Item README.md release/使用说明.md
+          $files = @('release/地毯工作台.exe', 'release/地毯工作台-安装版.exe', 'release/prices.json')
+          $lines = foreach ($file in $files) {
+            $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $(Split-Path $file -Leaf)"
+          }
+          $lines | Set-Content -Encoding utf8 release/SHA256SUMS.txt
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tag = "v$version"
+          $files = @('release/地毯工作台.exe', 'release/地毯工作台-安装版.exe', 'release/地毯工作台-安装版.exe.blockmap', 'release/prices.json', 'release/使用说明.md', 'release/SHA256SUMS.txt')
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --verify-tag --draft --title "地毯工作台 $tag" --generate-notes
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create the draft release.' }
+          }
+          gh release upload $tag @files --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed.' }
+          gh release edit $tag --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Could not publish the release.' }
