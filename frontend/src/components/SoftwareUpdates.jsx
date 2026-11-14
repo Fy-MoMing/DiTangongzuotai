@@ -52,7 +52,7 @@ export default function SoftwareUpdates() {
   const description = checking ? '正在连接 GitHub…' : available ? `发现新版本 v${state.latestVersion}` : state.status === 'current' ? '当前已是最新版本' : state.status === 'error' ? state.error : state.status === 'unconfigured' ? '连接发布仓库后即可检查更新' : '随时检查，保持最新';
 
   return <div className="software-updates" ref={root}>
-    <button className={`rail-version${available ? ' has-update' : ''}`} aria-label="检查软件更新" aria-expanded={open} aria-controls="software-update-panel" title={`当前版本 v${state.currentVersion} · 检查更新`} onClick={() => setOpen(value => !value)}>v{state.currentVersion}{available && <i />}</button>
+    <button className={`rail-version${available ? ' has-update' : ''}`} aria-label="检查软件更新" aria-expanded={open} aria-controls="software-update-panel" title={`当前版本 v${state.currentVersion} · 检查更新`} onClick={() => setOpen(value => !value)}><span className="rail-version-value">v{state.currentVersion}{available && <i />}</span><small>检查更新</small></button>
     {open && <section id="software-update-panel" className="update-panel" aria-label="软件更新">
       <div className="update-panel-heading"><span><FiDownload />软件更新</span><button className="update-close" aria-label="关闭更新面板" onClick={() => setOpen(false)}><FiX /></button></div>
       <div className={`update-summary${available ? ' available' : ''}`}><span className="update-status-icon">{checking ? <FiRefreshCw className="update-spinning" /> : available ? <FiDownload /> : <FiCheckCircle />}</span><div><strong>{description}</strong><small>当前版本 v{state.currentVersion} · {state.portable ? '免安装版' : '安装版'}</small></div></div>

@@ -38,7 +38,7 @@ async function main() {
     assert.equal(updates.currentVersion,require('../package.json').version);
     assert.equal(updates.portable,true);
     assert.equal(updates.repository,'Fy-MoMing/DiTangongzuotai');
-    assert.equal(await page.locator('.rail-version').innerText(),`v${updates.currentVersion}`);
+    assert.equal(await page.locator('.rail-version-value').innerText(),`v${updates.currentVersion}`);
     const weather = await page.evaluate(()=>window.desktop.getWeather(true));
     assert.equal(weather.error,null,JSON.stringify(weather));
     assert.ok(weather.city);

@@ -73,10 +73,12 @@ button{transition:border-color .18s,box-shadow .18s,transform .18s}
 .quote-virtual-scroll{max-height:360px;overflow-anchor:none}.quote-virtual-scroll table{table-layout:fixed;min-width:480px}.quote-virtual-scroll th{position:sticky;top:0;z-index:1}.quote-virtual-scroll th:first-child{width:29%}.quote-virtual-scroll th:nth-child(2){width:12%}.quote-virtual-scroll th:nth-child(3){width:19%}.quote-virtual-scroll th:nth-child(4){width:20%}.quote-virtual-scroll tbody tr[aria-rowindex]{height:52px}.quote-virtual-scroll tbody tr[aria-rowindex] td{height:52px}.page-loading{min-height:220px;display:grid;place-items:center;color:var(--muted);font-size:12px}
 
 .software-updates{position:relative}
-.rail-version{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;min-width:57px;padding:5px 3px;border:1px solid transparent;border-radius:7px;background:none;color:var(--muted);font-size:9px;letter-spacing:.4px;font-variant-numeric:tabular-nums}
+.rail-version{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:57px;padding:6px 3px;border:1px solid transparent;border-radius:7px;background:none;color:var(--muted);font-size:9px;letter-spacing:.4px;font-variant-numeric:tabular-nums}
 .rail-version:hover,.rail-version[aria-expanded=true]{color:var(--accent-ink);border-color:var(--line);background:var(--panel)}
 .rail-version.has-update{color:var(--mint)}
-.rail-version>i{width:4px;height:4px;border-radius:50%;background:var(--mint)}
+.rail-version-value{display:flex;align-items:center;gap:4px}
+.rail-version-value>i{width:4px;height:4px;border-radius:50%;background:var(--mint)}
+.rail-version>small{font-size:9px;letter-spacing:0;color:var(--secondary)}
 .update-panel{position:absolute;left:67px;bottom:0;z-index:80;width:350px;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:17px;box-shadow:0 18px 65px #08122030;text-align:left;letter-spacing:0}
 .update-panel-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .update-panel-heading>span{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:14px;font-weight:550}

@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const version = require('../package.json').version;
+const versionParts = version.split('.').map(Number);
+const nextVersion = `${versionParts[0]}.${versionParts[1]}.${versionParts[2] + 1}`;
 
 async function main() {
   const output = path.resolve(process.env.DESKTOP_TEST_OUTPUT || '.test-output');
@@ -23,7 +25,8 @@ async function main() {
     const actualStatus=await page.evaluate(()=>window.desktop.getUpdateStatus());
     assert.equal(actualStatus.currentVersion,version);
     assert.equal(actualStatus.repository,'Fy-MoMing/DiTangongzuotai');
-    assert.equal(await page.locator('.rail-version').innerText(),`v${version}`);
+    assert.equal(await page.locator('.rail-version-value').innerText(),`v${version}`);
+    assert.equal(await page.locator('.rail-version small').innerText(),'检查更新');
     await page.getByRole('button',{name:'检查软件更新',exact:true}).click();
     const panel=page.getByRole('region',{name:'软件更新',exact:true});
     await panel.waitFor();
@@ -33,7 +36,7 @@ async function main() {
     assert.equal(await panel.getByRole('button',{name:'检查更新',exact:true}).isEnabled(),true);
     console.log('PASS: real IPC version and repository; offline check gives an inline retry state');
 
-    await application.evaluate(({ipcMain,app})=>{
+    await application.evaluate(({ipcMain,app},latestVersion)=>{
       globalThis.__updateCheckCount=0;
       globalThis.__updateDownloads=0;
       ipcMain.removeHandler('updates:check');
@@ -43,14 +46,14 @@ async function main() {
         const state={currentVersion:app.getVersion(),repository:'Fy-MoMing/DiTangongzuotai',portable:false,status:'checking',checkedAt:null};
         event.sender.send('updates:changed',state);
         await new Promise(resolve=>setTimeout(resolve,150));
-        const result={...state,status:'available',latestVersion:'1.4.1',checkedAt:Date.now(),notes:'优化报价体验。\n保留现有价格配置。',downloadUrl:'https://github.com/Fy-MoMing/DiTangongzuotai/releases/download/v1.4.1/setup.exe'};
+        const result={...state,status:'available',latestVersion,checkedAt:Date.now(),notes:'优化报价体验。\n保留现有价格配置。',downloadUrl:`https://github.com/Fy-MoMing/DiTangongzuotai/releases/download/v${latestVersion}/setup.exe`};
         event.sender.send('updates:changed',result);return result;
       });
       ipcMain.removeHandler('updates:download');
       ipcMain.handle('updates:download',()=>{globalThis.__updateDownloads++;return true;});
-    });
+    },nextVersion);
     await panel.getByRole('button',{name:'检查更新',exact:true}).click();
-    await panel.getByText('发现新版本 v1.4.1',{exact:true}).waitFor();
+    await panel.getByText(`发现新版本 v${nextVersion}`,{exact:true}).waitFor();
     assert.equal(await page.locator('.rail-version.has-update').count(),1);
     assert.equal(await application.evaluate(()=>globalThis.__updateForced),true);
     await panel.getByRole('button',{name:'下载新版',exact:true}).click();
