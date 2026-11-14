@@ -7,10 +7,10 @@ const config = require('../config/prices.json');
 const { validatePrices, createPriceStore } = require('../desktop/price-config.cjs');
 const model = import('../frontend/src/utils/pricing.js');
 const quote = async (input, id = '1', options = {}, prices = config) => (await model).calculateQuote(input, prices['产品'].find(p => p['编号'] === id), prices, options);
-test('only the eight requested materials and their ready-made prices remain', () => {
+test('the nine requested materials retain continuous IDs and existing ready-made prices', () => {
   assert.equal(validatePrices(config), config);
-  assert.deepEqual(config['产品'].map(p => p['名称']), ['条纹','菱形方格','硬丝','平面','流星毯','丝圈','宽条纹','硅藻泥']);
-  assert.deepEqual(config['产品'].map(p => p['编号']), ['1','2','3','4','5','6','7','8']);
+  assert.deepEqual(config['产品'].map(p => p['名称']), ['条纹','菱形方格','硬丝','平面','流星毯','丝圈','宽条纹','硅藻泥','菠萝纹']);
+  assert.deepEqual(config['产品'].map(p => p['编号']), ['1','2','3','4','5','6','7','8','9']);
   assert.equal(config['现成尺寸价格'].length, 117);
   const ids = new Set(config['产品'].map(p => p['编号']));
   assert.ok(config['现成尺寸价格'].every(p => ids.has(p['产品编号'])));
@@ -92,6 +92,7 @@ test('legacy configuration migration removes other materials and preserves retai
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'carpet-migration-test-'));
   const configPath = path.join(directory, 'prices.json');
   const legacy = structuredClone(config);
+  legacy['产品'] = legacy['产品'].filter(product => product['编号'] !== '9');
   const oldIds = ['1','2','3','4','7','8','14','16'];
   const idMap = new Map(legacy['产品'].map((p,i)=>[p['编号'],oldIds[i]]));
   delete legacy['编号版本'];
@@ -112,9 +113,9 @@ test('legacy configuration migration removes other materials and preserves retai
   const [one, two] = await Promise.all([store.read(), store.read()]);
   for (const snapshot of [one, two]) {
     assert.equal(snapshot.error, null);
-    assert.equal(snapshot.config['产品'].length, 8);
+    assert.equal(snapshot.config['产品'].length, 9);
     assert.equal(snapshot.config['产品'][0]['单价'], 74.88);
-    assert.deepEqual(snapshot.config['产品'].map(p=>p['编号']),['1','2','3','4','5','6','7','8']);
+    assert.deepEqual(snapshot.config['产品'].map(p=>p['编号']),['1','2','3','4','5','6','7','8','9']);
     assert.equal(snapshot.config['产品'][0]['单位重量'],2.75);
     assert.deepEqual(snapshot.config['产品'][1]['单位重量'],{'标准':2.4,'方格款式':3.6});
     assert.equal(snapshot.config['产品'].find(p => p['编号'] === '5')['名称'], '流星毯');
@@ -125,13 +126,56 @@ test('legacy configuration migration removes other materials and preserves retai
     assert.deepEqual(snapshot.config['现成尺寸价格'],config['现成尺寸价格'].map((r,i)=>i===0?{...r,'价格':12.34}:r));
   }
   assert.equal(await fs.readFile(`${configPath}.before-1.3.2.bak`, 'utf8'), original);
-  assert.equal(JSON.parse(await fs.readFile(configPath, 'utf8'))['产品'].length, 8);
+  assert.equal(JSON.parse(await fs.readFile(configPath, 'utf8'))['产品'].length, 9);
   const {normalizePrices} = await import('../config/normalize-prices.mjs');
   assert.equal(normalizePrices(one.config,config),one.config);
   const withoutMarker = structuredClone(one.config); delete withoutMarker['编号版本'];
   assert.deepEqual(normalizePrices(withoutMarker,config),one.config);
 });
 test('duplicate sizes and invalid money are rejected', () => { const duplicate=structuredClone(config); duplicate['现成尺寸价格'].push(duplicate['现成尺寸价格'][0]); assert.throws(()=>validatePrices(duplicate),/重复/); const bad=structuredClone(config); bad['产品'][0]['单价']=-1; assert.throws(()=>validatePrices(bad),/单价/); });
+
+test('pineapple material uses 60 yuan per square metre without invented ready-made prices or weight', async () => {
+  const {formatQuoteForCopy} = await model;
+  const result = await quote('100*100\n60*90', '9');
+  assert.deepEqual(result.rows.map(row=>row.unitPrice),[60,60]);
+  assert.ok(result.rows.every(row=>!row.readyMade && row.priceUnit === '㎡'));
+  assert.equal(result.total,92.4);
+  assert.equal(result.weight,0);
+  assert.equal(formatQuoteForCopy(result,{automatic:true}),'100*100 = 60.00元\n60*90 = 32.40元\n两张\n总价格92元');
+  assert.equal(formatQuoteForCopy(result),'100*100 = 60元\n60*90 = 32.4元\n总价格92.4元');
+  assert.equal((await quote('100*200*2','9')).total,240);
+});
+
+test('eight-material user configuration gains pineapple once while preserving edited data and backing up the original', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(),'carpet-pineapple-test-'));
+  const configPath = path.join(directory,'prices.json');
+  const previous = structuredClone(config);
+  previous['产品'] = previous['产品'].filter(product=>product['编号'] !== '9');
+  previous['产品'][0]['单价'] = 66.88;
+  previous['产品'][0]['单位重量'] = 2.75;
+  previous['现成尺寸价格'][0]['价格'] = 19.99;
+  const original = JSON.stringify(previous,null,2);
+  await fs.writeFile(configPath,original);
+  const store = await createPriceStore({defaultPath:path.join(__dirname,'../config/prices.json'),configPath});
+  const added = await store.read();
+  assert.equal(added.error,null);
+  assert.deepEqual(added.config['产品'].slice(0,8),previous['产品']);
+  assert.deepEqual(added.config['现成尺寸价格'],previous['现成尺寸价格']);
+  assert.equal(added.config['产品'].length,9);
+  assert.equal(added.config['产品'][8]['名称'],'菠萝纹');
+  assert.equal(added.config['产品'][8]['单价'],60);
+  assert.equal(await fs.readFile(`${configPath}.before-1.4.5.bak`,'utf8'),original);
+  const edited = structuredClone(added.config);
+  edited['产品'][8]['单价'] = 65;
+  edited['产品'][8]['单位重量'] = 1.8;
+  await store.save(edited);
+  const reopened = await createPriceStore({defaultPath:path.join(__dirname,'../config/prices.json'),configPath});
+  const saved = await reopened.read();
+  assert.equal(saved.config['产品'].length,9);
+  assert.equal(saved.config['产品'][8]['单价'],65);
+  assert.equal(saved.config['产品'][8]['单位重量'],1.8);
+  assert.equal(await fs.readFile(`${configPath}.before-1.4.5.bak`,'utf8'),original);
+});
 test('file save backs up original; broken external file keeps last valid data', async () => {
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'carpet-pricing-test-'));
   const configPath=path.join(directory,'prices.json');

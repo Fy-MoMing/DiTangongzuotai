@@ -9,8 +9,8 @@ export function normalizePrices(config, defaults) {
   const idMap = new Map();
   const products = defaults['产品'].flatMap((standard, index) => {
     const oldId = currentIds ? standard['编号'] : legacyIds[index];
-    let product = config['产品'].find(item => item['编号'] === oldId);
-    if (!product) return [];
+    let product = config['产品'].find(item => item['编号'] === oldId && (standard['编号'] !== '9' || item['名称'] === standard['名称']));
+    if (!product) return standard['编号'] === '9' ? [structuredClone(standard)] : [];
     const weight = product['单位重量'];
     if (weight && typeof weight === 'object' && Object.hasOwn(weight, '加厚')) {
       const { '加厚': legacyWeight, ...remaining } = weight;

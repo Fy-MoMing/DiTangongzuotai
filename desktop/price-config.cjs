@@ -49,6 +49,10 @@ async function createPriceStore({ defaultPath, configPath }) {
       const loaded = validatePrices(JSON.parse(text.replace(/^\uFEFF/, '')));
       const parsed = validatePrices(normalizePrices(loaded, defaults));
       if (parsed !== loaded) {
+        if (!loaded['产品'].some(product => product['编号'] === '9' && product['名称'] === '菠萝纹') && parsed['产品'].some(product => product['编号'] === '9' && product['名称'] === '菠萝纹')) {
+          try { await fs.writeFile(`${configPath}.before-1.4.5.bak`, text, { flag: 'wx' }); }
+          catch (error) { if (error.code !== 'EEXIST') throw error; }
+        }
         try { await fs.writeFile(`${configPath}.before-1.3.2.bak`, text, { flag: 'wx' }); }
         catch (error) { if (error.code !== 'EEXIST') throw error; }
         await fs.writeFile(`${configPath}.tmp`, JSON.stringify(parsed, null, 2) + '\n');

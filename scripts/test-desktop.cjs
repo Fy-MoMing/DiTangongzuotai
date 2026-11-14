@@ -9,6 +9,9 @@ async function main() {
   const output = process.env.DESKTOP_TEST_OUTPUT || path.join(root, '.test-output');
   await fs.mkdir(output, { recursive: true });
   const userData = await fs.mkdtemp(path.join(output, 'user-data-'));
+  const previousPrices = structuredClone(require('../config/prices.json'));
+  previousPrices['产品'] = previousPrices['产品'].filter(product=>product['编号'] !== '9');
+  await fs.writeFile(path.join(userData,'prices.json'),JSON.stringify(previousPrices,null,2));
   const executablePath = process.env.DESKTOP_TEST_EXE || path.join(root, 'release', 'win-unpacked', '地毯工作台.exe');
   const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
   const launch = () => electron.launch({ executablePath, args: [`--user-data-dir=${userData}`], env, timeout: 45000 });
@@ -47,7 +50,7 @@ async function main() {
     assert.equal(await page.locator('.night-desktop').getAttribute('data-theme'),'light');
     await page.getByRole('button',{name:'切换到夜间主题',exact:true}).click();
     assert.equal(await page.locator('.material-card img').count(),0);
-    assert.equal(await page.locator('.material-tile').count(),8);
+    assert.equal(await page.locator('.material-tile').count(),9);
     assert.equal(await page.getByText('累计完成计算',{exact:true}).count(),0);
     assert.equal(await page.locator('.workspace-stats .stat-card').count(),2);
     const materialPriceColors = () => page.locator('.material-info b').evaluateAll(elements => [...new Set(elements.map(element => getComputedStyle(element).color))]);
@@ -61,6 +64,22 @@ async function main() {
     const preferences = await application.evaluate(({ BrowserWindow }) => { const p = BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences(); return { sandbox:p.sandbox, contextIsolation:p.contextIsolation, nodeIntegration:p.nodeIntegration }; });
     assert.deepEqual(preferences, { sandbox:true, contextIsolation:true, nodeIntegration:false });
     console.log('PASS: offline startup, neutral branding, custom title bar, isolated renderer');
+
+    assert.equal(JSON.parse(await fs.readFile(path.join(userData,'prices.json.before-1.4.5.bak'),'utf8'))['产品'].length,8);
+    await page.getByRole('button',{name:'菠萝纹',exact:true}).click();
+    await page.locator('#dimensions').fill('100*100');
+    await page.getByText('¥60.00',{exact:true}).first().waitFor();
+    await waitFor(async()=>await application.evaluate(({clipboard})=>clipboard.readText())==='100*100的价格是60元');
+    assert.match(await page.locator('.quote-unit-price').first().innerText(),/¥60\.00\s*\/\s*㎡/);
+    await page.locator('#dimensions').fill('100*100\n60*90');
+    await waitFor(async()=>await application.evaluate(({clipboard})=>clipboard.readText())==='100*100 = 60.00元\n60*90 = 32.40元\n两张\n总价格92元');
+    await page.getByRole('button',{name:/复制所有尺寸价格/}).click();
+    await waitFor(async()=>await application.evaluate(({clipboard})=>clipboard.readText())==='100*100 = 60元\n60*90 = 32.4元\n总价格92.4元');
+    await navigate('价格配置');
+    assert.equal(await page.getByRole('spinbutton',{name:'菠萝纹单价',exact:true}).inputValue(),'60');
+    await navigate('地毯价格计算');
+    await page.locator('#dimensions').fill('');
+    console.log('PASS: eight-material upgrade adds pineapple at 60 yuan per square metre; settings, quotation and copy all agree');
 
     await page.getByRole('textbox', { name: '全局搜索材质', exact: true }).fill('硅藻泥');
     assert.equal(await page.locator('.material-tile').count(),1);
@@ -152,8 +171,8 @@ async function main() {
     console.log('PASS: 1000-size quote renders a bounded table, scrolls to the final row and copies every price');
 
     await navigate('价格配置');
-    assert.equal(await page.locator('.settings-price-table tbody tr').count(),8);
-    assert.deepEqual(await page.locator('.settings-price-table .product-number').allTextContents(),['1','2','3','4','5','6','7','8']);
+    assert.equal(await page.locator('.settings-price-table tbody tr').count(),9);
+    assert.deepEqual(await page.locator('.settings-price-table .product-number').allTextContents(),['1','2','3','4','5','6','7','8','9']);
     await page.getByRole('spinbutton',{name:'条纹单价',exact:true}).fill('55');
     await page.getByRole('button',{name:'每平重量',exact:true}).click();
     assert.equal(await page.getByRole('spinbutton',{name:'平面每平重量',exact:true}).inputValue(),'');
@@ -198,7 +217,7 @@ async function main() {
     await page.locator('#dimensions').fill('100*200');
     assert.match(await page.locator('.quote-meta').innerText(),/2\.50 kg/);
     await page.getByRole('button',{name:'条纹',exact:true}).click();
-    console.log('PASS: continuous 1–8 IDs, editable weights, standard/square styles, validation, JSON backup and live recalculation');
+    console.log('PASS: continuous 1–9 IDs, editable weights, standard/square styles, validation, JSON backup and live recalculation');
 
     await navigate('尺寸价格表');
     await page.getByRole('textbox',{name:'搜索尺寸或商品',exact:true}).fill('120*150');
@@ -295,7 +314,7 @@ async function main() {
     assert.equal(reopenedConfig['产品'][0]['单位重量'],2.75);
     assert.deepEqual(reopenedConfig['产品'][1]['单位重量'],{'标准':2.4,'方格款式':3.6});
     assert.equal(reopenedConfig['产品'][3]['单位重量'],1.25);
-    assert.deepEqual(reopenedConfig['产品'].map(p=>p['编号']),['1','2','3','4','5','6','7','8']);
+    assert.deepEqual(reopenedConfig['产品'].map(p=>p['编号']),['1','2','3','4','5','6','7','8','9']);
     assert.equal(await reopened.locator('.night-desktop').getAttribute('data-theme'),'light');
     assert.equal(await reopened.getByRole('button',{name:'切换到夜间主题',exact:true}).count(),1);
     console.log('PASS: compact input at both window sizes, complete day/night themes and persistence after restart');

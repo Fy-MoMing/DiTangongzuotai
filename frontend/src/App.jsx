@@ -47,6 +47,7 @@ function Workspace() {
         const stored = JSON.parse(localStorage.getItem('priceConfig') || 'null') || defaults;
         const config = normalizePrices(stored, defaults);
         if (config !== stored) {
+          if (!stored['产品'].some(product => product['编号'] === '9' && product['名称'] === '菠萝纹') && !localStorage.getItem('priceConfigBefore145')) localStorage.setItem('priceConfigBefore145', JSON.stringify(stored));
           if (!localStorage.getItem('priceConfigBefore132')) localStorage.setItem('priceConfigBefore132', JSON.stringify(stored));
           localStorage.setItem('priceConfig', JSON.stringify(config));
         }

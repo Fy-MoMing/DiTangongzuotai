@@ -54,8 +54,8 @@ async function main() {
     assert.match(await page.locator('.night-desktop').evaluate(element=>getComputedStyle(element).fontFamily),/Manrope/);
     assert.match(await page.locator('.topbar-config').evaluate(element=>getComputedStyle(element).backgroundImage),/255, 160, 91/);
     const prices = await page.evaluate(()=>window.desktop.getPrices());
-    assert.deepEqual(prices.config['产品'].map(p=>p['名称']),['条纹','菱形方格','硬丝','平面','流星毯','丝圈','宽条纹','硅藻泥']);
-    assert.deepEqual(prices.config['产品'].map(p=>p['编号']),['1','2','3','4','5','6','7','8']);
+    assert.deepEqual(prices.config['产品'].map(p=>p['名称']),['条纹','菱形方格','硬丝','平面','流星毯','丝圈','宽条纹','硅藻泥','菠萝纹']);
+    assert.deepEqual(prices.config['产品'].map(p=>p['编号']),['1','2','3','4','5','6','7','8','9']);
     assert.equal(await page.getByText('累计完成计算',{exact:true}).count(),0);
     assert.equal(prices.config['产品'].find(p=>p['编号']==='8')['最大宽度'],160);
     await page.locator('#dimensions').fill('120*150\n90*200*3');
@@ -66,6 +66,12 @@ async function main() {
     await page.screenshot({path:path.join(output,'desktop-preview-light.png')});
     await page.getByRole('button',{name:'切换到夜间主题',exact:true}).click();
     const readClipboard = () => execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-Command','[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); Get-Clipboard -Raw'],{encoding:'utf8',windowsHide:true}).trim().replace(/\r\n/g,'\n');
+    await page.getByRole('button',{name:'菠萝纹',exact:true}).click();
+    await page.locator('#dimensions').fill('100*100');
+    await page.getByText('¥60.00',{exact:true}).first().waitFor();
+    await delay(650);
+    assert.equal(readClipboard(),'100*100的价格是60元');
+    await page.getByRole('button',{name:'条纹',exact:true}).click();
     await page.locator('#dimensions').fill('60*90');
     await delay(650);
     assert.equal(readClipboard(),'60*90的价格是18.8元');
@@ -101,7 +107,7 @@ async function main() {
     assert.equal(readClipboard(),'124*240 = 119.04元\n120*120 = 57.60元\n两张\n总价格176元');
     await page.getByRole('navigation',{name:'工作台导航'}).getByRole('button',{name:'价格配置',exact:true}).click();
     await page.locator('.settings-editor').waitFor();
-    assert.deepEqual(await page.locator('.settings-price-table .product-number').allTextContents(),['1','2','3','4','5','6','7','8']);
+    assert.deepEqual(await page.locator('.settings-price-table .product-number').allTextContents(),['1','2','3','4','5','6','7','8','9']);
     await page.getByRole('button',{name:'每平重量',exact:true}).click();
     await page.getByRole('spinbutton',{name:'条纹每平重量',exact:true}).fill('2.75');
     await page.getByRole('button',{name:'保存配置',exact:true}).click();
