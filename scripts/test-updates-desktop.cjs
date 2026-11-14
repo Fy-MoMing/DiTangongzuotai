@@ -18,6 +18,7 @@ async function main() {
     const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await application.evaluate(({session})=>{
       session.defaultSession.webRequest.onBeforeRequest({urls:['http://*/*','https://*/*']},(_details,callback)=>callback({cancel:true}));
+      globalThis.fetch=async()=>{throw new Error('offline');};
     });
     await page.reload();
     await page.getByRole('heading',{name:'选择地毯材质',exact:true}).waitFor();

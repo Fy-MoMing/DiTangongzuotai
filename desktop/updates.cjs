@@ -29,7 +29,7 @@ function repositoryUrl(value, repository, kind) {
   }
 }
 
-function createUpdateService({ currentVersion, repository, portable = false, fetchImpl = globalThis.fetch, openExternal = async () => {}, onChange = () => {}, now = Date.now }) {
+function createUpdateService({ currentVersion, repository, portable = false, fetchImpl = globalThis.fetch, fallbackFetchImpl, openExternal = async () => {}, onChange = () => {}, now = Date.now }) {
   const configured = validRepository(repository);
   let state = {
     currentVersion, repository: configured ? repository : '', portable,
@@ -40,10 +40,19 @@ function createUpdateService({ currentVersion, repository, portable = false, fet
   let pending;
   const getStatus = () => ({ ...state });
   const updateState = value => { state = { ...state, ...value }; onChange(getStatus()); return getStatus(); };
+  async function fetchRelease(url, options) {
+    try {
+      const response = await fetchImpl(url, options);
+      if (!fallbackFetchImpl || ![403, 429].includes(response.status) && response.status < 500) return response;
+    } catch (error) {
+      if (!fallbackFetchImpl) throw error;
+    }
+    return fallbackFetchImpl(url, { ...options, signal: AbortSignal.timeout(12000) });
+  }
   async function request() {
     updateState({ status: 'checking', error: null });
     try {
-      const response = await fetchImpl(`https://api.github.com/repos/${repository}/releases/latest`, {
+      const response = await fetchRelease(`https://api.github.com/repos/${repository}/releases/latest`, {
         headers: { Accept: 'application/vnd.github+json', 'User-Agent': `CarpetStudio/${currentVersion}`, 'X-GitHub-Api-Version': '2022-11-28' },
         signal: AbortSignal.timeout(12000), cache: 'no-store'
       });

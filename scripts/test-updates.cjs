@@ -89,3 +89,15 @@ test('unconfigured repository never makes requests or opens a URL', async () => 
     assert.equal((await updater.check(true)).status,'unconfigured');assert.equal(await updater.openDownload(),false);assert.equal(await updater.openRelease(),false);
   }
 });
+
+test('direct network is preferred, with a system-network fallback for errors and rate limits', async () => {
+  for(const fetchImpl of [async()=>{throw Error('offline');},async()=>({ok:false,status:429}),async()=>({ok:false,status:503})]) {
+    let fallbackCalls=0;
+    const updater=service({fetchImpl,fallbackFetchImpl:async(_url,options)=>{fallbackCalls++;assert.ok(options.signal);return ok(manifest());}});
+    assert.equal((await updater.check()).status,'available');assert.equal(fallbackCalls,1);
+  }
+  for(const response of [ok(manifest()),{ok:false,status:404}]) {
+    const updater=service({fetchImpl:async()=>response,fallbackFetchImpl:async()=>assert.fail('do not duplicate a successful or missing-release request')});
+    assert.equal((await updater.check()).status,response.ok?'available':'error');
+  }
+});

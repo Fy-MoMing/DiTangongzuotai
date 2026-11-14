@@ -58,9 +58,9 @@
 
 GitHub 下载项显示中文名称，文件名分别为 `DiTan-Portable.exe`（免安装版）和 `DiTan-Setup.exe`（安装版），用于稳定匹配更新。
 
-更新源为 https://github.com/Fy-MoMing/DiTangongzuotai ，在 `config/github.json` 配置。程序只检查 GitHub Releases 的公开正式版本，版本标签使用 `v主版本.次版本.修订版本`，例如 `v1.4.0`，不提示降级或测试版。断网可正常使用本地功能。
+更新源为 https://github.com/Fy-MoMing/DiTangongzuotai ，在 `config/github.json` 配置。检查优先使用本机直连，请求失败或遇到限流时再尝试系统网络。程序只检查 GitHub Releases 的公开正式版本，版本标签使用 `v主版本.次版本.修订版本`，例如 `v1.4.0`，不提示降级或测试版。断网可正常使用本地功能。
 
-后续发版：修改根目录 `package.json` 和 `package-lock.json` 的版本，提交后推送对应版本标签，例如 `git tag v1.4.1`、`git push origin v1.4.1`。GitHub Actions 会测试、构建 Windows 免安装版和安装版，并发布到 Releases；左下角版本号随打包版本自动变化。1.4.3 及以后版本支持检查更新，旧版需先手动升级一次。
+后续发版：修改根目录 `package.json` 和 `package-lock.json` 的版本，提交后推送对应版本标签，例如 `git tag v1.4.1`、`git push origin v1.4.1`。GitHub Actions 会测试、构建 Windows 免安装版和安装版，并发布到 Releases；左下角版本号随打包版本自动变化。1.4.4 及以后版本支持检查更新，旧版需先手动升级一次。
 
 ## 开发与打包
 

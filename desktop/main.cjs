@@ -166,7 +166,8 @@ if (!app.requestSingleInstanceLock()) {
     const updateService = createUpdateService({
       currentVersion: app.getVersion(), repository,
       portable: Boolean(process.env.PORTABLE_EXECUTABLE_DIR),
-      fetchImpl: (url, options) => net.fetch(url, options),
+      fetchImpl: (url, options) => globalThis.fetch(url, options),
+      fallbackFetchImpl: (url, options) => net.fetch(url, options),
       openExternal: url => shell.openExternal(url),
       onChange: state => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('updates:changed', state); }
     });
