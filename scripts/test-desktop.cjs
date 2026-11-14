@@ -237,7 +237,8 @@ async function main() {
     assert.match(await page.locator('.quote-meta').innerText(),/5\.50 kg/);
     assert.match(await page.locator('.quote-unit-price').first().innerText(),/¥65\.00\s*\/\s*㎡/);
     const inputSize = await page.locator('#dimensions').boundingBox();
-    assert.ok(inputSize.width>=600 && inputSize.width<=720 && inputSize.height>=140 && inputSize.height<=160,JSON.stringify(inputSize));
+    const viewportWidth = await page.evaluate(()=>window.innerWidth);
+    assert.ok(inputSize.width>=viewportWidth*.4 && inputSize.width<=viewportWidth*.55 && inputSize.height>=140 && inputSize.height<=160,JSON.stringify({viewportWidth,...inputSize}));
     await page.getByRole('button',{name:'切换到日间主题',exact:true}).click();
     assert.equal(await page.locator('.night-desktop').getAttribute('data-theme'),'light');
     assert.equal((await materialPriceColors()).length,1);
