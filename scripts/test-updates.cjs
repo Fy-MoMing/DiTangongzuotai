@@ -6,7 +6,7 @@ const prefix = `https://github.com/${repository}`;
 const manifest = (version = 'v1.5.0') => ({
   tag_name: version, html_url: `${prefix}/releases/tag/${version}`, body: '材质显示与更新体验优化。',
   draft: false, prerelease: false,
-  assets: ['地毯工作台.exe', '地毯工作台-安装版.exe'].map(name => ({name, browser_download_url:`${prefix}/releases/download/${version}/${encodeURIComponent(name)}`}))
+  assets: ['DiTan-Portable.exe', 'DiTan-Setup.exe'].map(name => ({name, browser_download_url:`${prefix}/releases/download/${version}/${encodeURIComponent(name)}`}))
 });
 const ok = release => ({ok:true,status:200,json:async()=>release});
 const service = options => createUpdateService({currentVersion:'1.4.0', repository, fetchImpl:async()=>ok(manifest()), ...options});
@@ -37,7 +37,7 @@ test('portable and installed editions open the matching asset; user action is re
     assert.equal(await updater.openDownload(),false);
     await updater.check();assert.deepEqual(opened,[]);
     assert.equal(await updater.openDownload(),true);
-    assert.equal(decodeURIComponent(opened[0]),`${prefix}/releases/download/v1.5.0/${portable?'地毯工作台.exe':'地毯工作台-安装版.exe'}`);
+    assert.equal(decodeURIComponent(opened[0]),`${prefix}/releases/download/v1.5.0/${portable?'DiTan-Portable.exe':'DiTan-Setup.exe'}`);
     await updater.openRelease();assert.equal(opened[1],`${prefix}/releases/tag/v1.5.0`);
   }
 });

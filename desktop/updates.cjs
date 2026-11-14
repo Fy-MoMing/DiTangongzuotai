@@ -53,8 +53,8 @@ function createUpdateService({ currentVersion, repository, portable = false, fet
       const release = await response.json();
       const compared = compareVersions(release.tag_name, currentVersion);
       if (release.draft || release.prerelease || compared === null) throw new Error('暂时没有可用的正式更新。');
-      const assetName = portable ? '地毯工作台.exe' : '地毯工作台-安装版.exe';
-      const asset = Array.isArray(release.assets) && release.assets.find(item => item.name === assetName && repositoryUrl(item.browser_download_url, repository, 'download'));
+      const assetNames = portable ? ['DiTan-Portable.exe', '地毯工作台.exe'] : ['DiTan-Setup.exe', '地毯工作台-安装版.exe'];
+      const asset = Array.isArray(release.assets) && release.assets.find(item => assetNames.includes(item.name) && repositoryUrl(item.browser_download_url, repository, 'download'));
       return updateState({
         status: compared > 0 ? 'available' : 'current',
         latestVersion: parseVersion(release.tag_name).join('.'),
