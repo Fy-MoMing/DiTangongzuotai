@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { createUpdateService, compareVersions } = require('../desktop/updates.cjs');
 const repository = 'Fy-MoMing/DiTangongzuotai';
 const prefix = `https://github.com/${repository}`;
+const downloadPrefix = `https://ghfast.top/${prefix}`;
 const manifest = (version = 'v1.5.0') => ({
   tag_name: version, html_url: `${prefix}/releases/tag/${version}`, body: '材质显示与更新体验优化。',
   draft: false, prerelease: false,
@@ -31,14 +32,26 @@ test('check uses the configured GitHub repository, returns notes and broadcasts 
   assert.deepEqual(requests,[`https://api.github.com/repos/${repository}/releases/latest`]);
 });
 
-test('portable and installed editions open the matching asset; user action is required to download', async () => {
+test('portable and installed editions download matching assets through ghfast; user action is required', async () => {
   for (const portable of [true,false]) {
     const opened=[];const updater=service({portable,openExternal:async url=>opened.push(url)});
     assert.equal(await updater.openDownload(),false);
-    await updater.check();assert.deepEqual(opened,[]);
+    const status=await updater.check();assert.deepEqual(opened,[]);
+    assert.equal(status.downloadUrl,`${downloadPrefix}/releases/download/v1.5.0/${portable?'DiTan-Portable.exe':'DiTan-Setup.exe'}`);
     assert.equal(await updater.openDownload(),true);
-    assert.equal(decodeURIComponent(opened[0]),`${prefix}/releases/download/v1.5.0/${portable?'DiTan-Portable.exe':'DiTan-Setup.exe'}`);
+    assert.equal(decodeURIComponent(opened[0]),`${downloadPrefix}/releases/download/v1.5.0/${portable?'DiTan-Portable.exe':'DiTan-Setup.exe'}`);
     await updater.openRelease();assert.equal(opened[1],`${prefix}/releases/tag/v1.5.0`);
+  }
+});
+
+test('accelerated download retains the actual release tag and encoded legacy filename', async () => {
+  for(const portable of [true,false]) {
+    const name=portable?'地毯工作台.exe':'地毯工作台-安装版.exe';
+    const release=manifest('v2.10.3');
+    const original=`${prefix}/releases/download/v2.10.3/${encodeURIComponent(name)}`;
+    release.assets=[{name,browser_download_url:original}];
+    const updater=service({portable,fetchImpl:async()=>ok(release)});
+    assert.equal((await updater.check()).downloadUrl,`https://ghfast.top/${original}`);
   }
 });
 

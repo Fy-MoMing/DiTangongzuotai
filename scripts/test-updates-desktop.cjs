@@ -26,6 +26,21 @@ async function main() {
     const actualStatus=await page.evaluate(()=>window.desktop.getUpdateStatus());
     assert.equal(actualStatus.currentVersion,version);
     assert.equal(actualStatus.repository,'Fy-MoMing/DiTangongzuotai');
+    await application.evaluate(({shell},latestVersion)=>{
+      globalThis.__openedUpdateUrls=[];
+      shell.openExternal=async url=>{globalThis.__openedUpdateUrls.push(url);};
+      globalThis.fetch=async()=>({ok:true,status:200,json:async()=>({
+        tag_name:`v${latestVersion}`,html_url:`https://github.com/Fy-MoMing/DiTangongzuotai/releases/tag/v${latestVersion}`,
+        assets:[{name:'DiTan-Setup.exe',browser_download_url:`https://github.com/Fy-MoMing/DiTangongzuotai/releases/download/v${latestVersion}/DiTan-Setup.exe`}]
+      })});
+    },nextVersion);
+    const acceleratedStatus=await page.evaluate(()=>window.desktop.checkUpdates(true));
+    const acceleratedUrl=`https://ghfast.top/https://github.com/Fy-MoMing/DiTangongzuotai/releases/download/v${nextVersion}/DiTan-Setup.exe`;
+    assert.equal(acceleratedStatus.downloadUrl,acceleratedUrl);
+    await page.evaluate(()=>window.desktop.downloadUpdate());
+    assert.deepEqual(await application.evaluate(()=>globalThis.__openedUpdateUrls),[acceleratedUrl]);
+    await application.evaluate(()=>{globalThis.fetch=async()=>{throw new Error('offline');};});
+    console.log('PASS: real update IPC opens matching installer through ghfast.top');
     assert.equal(await page.locator('.rail-version-value').innerText(),`v${version}`);
     assert.equal(await page.locator('.rail-version small').innerText(),'检查更新');
     await page.getByRole('button',{name:'检查软件更新',exact:true}).click();

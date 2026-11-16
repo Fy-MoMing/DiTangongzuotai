@@ -1,4 +1,5 @@
 const CHECK_INTERVAL = 15 * 60 * 1000;
+const DOWNLOAD_PREFIX = 'https://ghfast.top/';
 
 function parseVersion(value) {
   const match = typeof value === 'string' && value.trim().match(/^v?(\d+)\.(\d+)\.(\d+)(?:\+[\w.-]+)?$/);
@@ -68,7 +69,7 @@ function createUpdateService({ currentVersion, repository, portable = false, fet
         status: compared > 0 ? 'available' : 'current',
         latestVersion: parseVersion(release.tag_name).join('.'),
         releaseUrl: repositoryUrl(release.html_url, repository, 'tag') ? release.html_url : `https://github.com/${repository}/releases/latest`,
-        downloadUrl: asset ? asset.browser_download_url : null,
+        downloadUrl: asset ? `${DOWNLOAD_PREFIX}${asset.browser_download_url}` : null,
         notes: typeof release.body === 'string' ? release.body.slice(0, 6000) : '',
         checkedAt: now(), error: null
       });
