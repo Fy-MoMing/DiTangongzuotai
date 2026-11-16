@@ -66,12 +66,15 @@ async function main() {
     await page.screenshot({path:path.join(output,'desktop-preview-light.png')});
     await page.getByRole('button',{name:'切换到夜间主题',exact:true}).click();
     const readClipboard = () => execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-Command','[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); Get-Clipboard -Raw'],{encoding:'utf8',windowsHide:true}).trim().replace(/\r\n/g,'\n');
-    await page.getByRole('button',{name:'菠萝纹',exact:true}).click();
+    await page.getByRole('heading',{name:'选择地毯材质',exact:true}).click();
+    await page.keyboard.press('Numpad9');
+    assert.equal(await page.getByRole('button',{name:'菠萝纹',exact:true}).getAttribute('aria-pressed'),'true');
     await page.locator('#dimensions').fill('100*100');
     await page.getByText('¥60.00',{exact:true}).first().waitFor();
     await delay(650);
     assert.equal(readClipboard(),'100*100的价格是60元');
-    await page.getByRole('button',{name:'条纹',exact:true}).click();
+    await page.getByRole('heading',{name:'选择地毯材质',exact:true}).click();
+    await page.keyboard.press('Digit1');
     await page.locator('#dimensions').fill('60*90');
     await delay(650);
     assert.equal(readClipboard(),'60*90的价格是18.8元');

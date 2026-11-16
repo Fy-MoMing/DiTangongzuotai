@@ -65,6 +65,54 @@ async function main() {
     assert.deepEqual(preferences, { sandbox:true, contextIsolation:true, nodeIntegration:false });
     console.log('PASS: offline startup, neutral branding, custom title bar, isolated renderer');
 
+    const selectedMaterial = () => page.locator('.material-tile.selected').getAttribute('data-material');
+    for (const keyPrefix of ['Digit','Numpad']) {
+      for (let digit=1;digit<=9;digit++) {
+        await page.keyboard.press(`${keyPrefix}${digit}`);
+        assert.equal(await selectedMaterial(),String(digit));
+      }
+    }
+    assert.deepEqual(await page.locator('.material-shortcut').allTextContents(),['1','2','3','4','5','6','7','8','9']);
+    await page.locator('#dimensions').fill('100*100');
+    await page.locator('#dimensions').press('End');
+    await page.keyboard.type('2');
+    assert.equal(await page.locator('#dimensions').inputValue(),'100*1002');
+    assert.equal(await selectedMaterial(),'9');
+    const customPriceInput = page.getByRole('spinbutton',{name:'输入自定义单价 (元/㎡)',exact:true});
+    await customPriceInput.fill('');
+    await page.keyboard.type('4');
+    assert.equal(await customPriceInput.inputValue(),'4');
+    assert.equal(await selectedMaterial(),'9');
+    await customPriceInput.fill('');
+    const materialSearch = page.getByRole('textbox',{name:'全局搜索材质',exact:true});
+    await materialSearch.fill('');
+    await page.keyboard.type('8');
+    assert.equal(await materialSearch.inputValue(),'8');
+    await materialSearch.fill('条纹');
+    await page.getByRole('heading',{name:'选择地毯材质',exact:true}).click();
+    await page.keyboard.press('Digit9');
+    assert.equal(await materialSearch.inputValue(),'');
+    assert.equal(await selectedMaterial(),'9');
+    for(const combination of ['Control+Digit2','Alt+Digit3','Shift+Digit4']) {
+      await page.keyboard.press(combination);
+      assert.equal(await selectedMaterial(),'9');
+    }
+    await page.locator('#dimensions').fill('100*100');
+    await page.getByRole('heading',{name:'选择地毯材质',exact:true}).click();
+    await page.keyboard.press('Digit1');
+    await waitFor(async()=>await application.evaluate(({clipboard})=>clipboard.readText())==='100*100的价格是40元');
+    await navigate('价格配置');
+    await page.keyboard.press('Digit7');
+    await navigate('地毯价格计算');
+    assert.equal(await selectedMaterial(),'1');
+    await page.locator('#dimensions').fill('');
+    await page.getByRole('button',{name:'检查软件更新',exact:true}).click();
+    await page.getByRole('button',{name:'检查更新',exact:true}).focus();
+    await page.keyboard.press('Digit8');
+    assert.equal(await selectedMaterial(),'1');
+    await page.keyboard.press('Escape');
+    console.log('PASS: number-row and numpad 1–9 select materials and recalculate; typing, modifiers, other pages and update panel keep their normal behavior');
+
     assert.equal(JSON.parse(await fs.readFile(path.join(userData,'prices.json.before-1.4.5.bak'),'utf8'))['产品'].length,8);
     await page.getByRole('button',{name:'菠萝纹',exact:true}).click();
     await page.locator('#dimensions').fill('100*100');

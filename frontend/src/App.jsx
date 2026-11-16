@@ -41,6 +41,23 @@ function Workspace() {
   const config = snapshot.config;
   const page = pages.find(p => p.id === pageId);
   const selectedProduct = config['产品'].find(p => p['编号'] === selectedId) || config['产品'].find(p => p['支持定制']);
+  useEffect(() => {
+    if (pageId !== 'calculator') return;
+    const onMaterialKey = event => {
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.repeat || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+      const materialId = /^[1-9]$/.test(event.key) ? event.key : /^Numpad([1-9])$/.exec(event.code)?.[1];
+      if (!materialId) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"], [role="spinbutton"], [role="combobox"], [role="dialog"], #software-update-panel'))) return;
+      const product = config['产品'].find(item => item['编号'] === materialId && item['支持定制']);
+      if (!product) return;
+      event.preventDefault();
+      setSelectedId(product['编号']);
+      setGlobalSearch('');
+    };
+    window.addEventListener('keydown', onMaterialKey);
+    return () => window.removeEventListener('keydown', onMaterialKey);
+  }, [pageId, config]);
   const reload = useCallback(async () => {
     try {
       const next = window.desktop?.getPrices ? await window.desktop.getPrices() : (() => {

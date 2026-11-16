@@ -49,6 +49,8 @@ button{transition:border-color .18s,box-shadow .18s,transform .18s}
 .material-info b{color:var(--accent-ink)}
 .quote-unit-price{white-space:nowrap;color:var(--ink)}
 .quote-unit-price small{font-size:10px;color:var(--muted)}
+.material-shortcut{position:absolute;right:13px;bottom:18px;display:grid;place-items:center;width:19px;height:20px;border:1px solid var(--line);border-radius:5px;background:var(--panel);font-family:inherit;font-size:10px;font-weight:500;color:var(--muted);box-shadow:0 1px 1px #00000008}
+.material-tile.selected .material-shortcut{color:var(--accent-ink);border-color:#ed934c40;background:#ed8d4c0a}
 
 .topbar-greeting{display:block;flex:0 1 310px;min-width:210px;max-width:330px}
 .greeting-copy{margin:0;font-size:12px;line-height:1.5;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
