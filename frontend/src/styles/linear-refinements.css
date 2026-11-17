@@ -12,6 +12,14 @@
 .section-heading h2{font-size:17px}.section-heading .step-number{font-size:11px}.small-label,.live-indicator{font-size:11px}
 .search-field input{font-size:13px}.search-field{height:39px}
 .material-info>strong{font-size:19px}.material-info b,.material-tile.selected .material-info b{font-size:20px}.material-info small{font-size:11px}.material-shortcut{font-size:10px}
+.material-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.material-tile{min-height:82px}
+.material-info{padding:11px 13px;gap:5px}
+.material-info>strong{gap:8px;line-height:1.4}
+.material-info>strong:before{display:block;width:6px;height:6px;box-shadow:0 0 0 3px rgba(var(--tile-rgb),.1)}
+.material-tile[data-material="9"]{--tile-rgb:170,181,104}
+.material-shortcut,.material-tile.selected .material-shortcut{top:auto;right:10px;bottom:11px;opacity:.75}
+.material-check{top:9px;right:9px}
 .material-keyboard-hint,.material-keyboard-hint kbd{font-size:12px}.custom-price-label strong{font-size:14px}.custom-price-label p{font-size:12px}.price-input,.price-input input{font-size:14px}.price-input>span:last-child{font-size:12px}.price-input{height:39px}
 .dimension-label>label:first-child{font-size:14px}.dimension-label>label>span,.toggle-label{font-size:12px}.dimension-input{font-size:19px}.dimension-input::placeholder{font-size:13px}
 .dimension-help{font-size:11px;flex-wrap:wrap;gap:9px}.text-button{font-size:12px}.quote-lines-heading{font-size:14px}.quote-lines-heading>span:last-child{font-size:12px}
@@ -42,6 +50,7 @@
 @media(max-width:1200px){
  .nav-item>span{font-size:13px}.page-heading h1{font-size:26px}.page-heading .greeting-copy{font-size:13px}.page-heading p{font-size:13px}.stat-card>div>span{font-size:11px}.stat-card>div>strong{font-size:24px}
  .section-heading h2{font-size:16px}.small-label,.live-indicator{font-size:10px}.material-info>strong{font-size:18px}.material-info b{font-size:20px}.material-info small{font-size:10px}
+ .material-info{padding:11px 12px}
  .custom-price-label p{font-size:11px}.dimension-help{font-size:11px}.dimension-help .text-button{font-size:11px}.quote-unit-price small{font-size:10px}.quote-actions>.primary-button{font-size:12px}.primary-button kbd{font-size:9px}
  .topbar-tools{gap:12px}.workspace-breadcrumb>svg{display:none}.today-weather{gap:6px}
 }
