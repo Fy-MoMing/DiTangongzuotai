@@ -1,6 +1,6 @@
 {
   "name": "carpet-studio-desktop",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "description": "地毯价格计算器 Windows 桌面版",
   "author": "Carpet Studio",
@@ -16,7 +16,7 @@
     "test:pricing": "node --test scripts/test-pricing.cjs",
     "test:workspace": "node --test scripts/test-workspace.cjs",
     "benchmark:desktop": "node scripts/benchmark-desktop.cjs",
-    "test:updates": "node --test scripts/test-updates.cjs"
+    "test:updates": "node --test scripts/test-updates.cjs scripts/test-update-files.cjs scripts/test-portable-updater.cjs"
   },
   "devDependencies": {
     "electron": "45.3.1",
@@ -43,6 +43,10 @@
       "desktop/weather.cjs",
       "shared/weather.mjs",
       "desktop/updates.cjs",
+      "desktop/update-files.cjs",
+      "desktop/apply-portable-update.ps1",
+      "THIRD-PARTY-NOTICES.md",
+      "frontend/src/components/react-bits/LICENSE.md",
       "config/github.json"
     ],
     "win": {

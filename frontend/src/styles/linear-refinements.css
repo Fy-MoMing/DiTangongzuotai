@@ -1,0 +1,48 @@
+/* Preserve the v1.5.0 design, with larger type, centered branding and quiet motion. */
+.brand-symbol{grid-template-columns:1fr;gap:0;place-items:center;transform:none}
+.brand-symbol svg{display:block;transform:none}
+.titlebar-appmark{font-size:11px}.titlebar-status{font-size:10px}
+.sidebar-label{font-size:11px}.global-search input{font-size:13px}
+.nav-item>span{font-size:14px}.nav-item{height:41px}.rail-mode>span{font-size:12px}.rail-mode{height:36px}
+.rail-version>small{font-size:12px}.rail-version-value{font-size:11px}
+.workspace-breadcrumb,.workspace-breadcrumb strong{font-size:12px}.topbar-config{font-size:12px;height:32px}
+.today-weather,.today-weather span{font-size:12px}.weather-temperature{font-size:15px}.weather-refresh{width:24px;height:24px}.weather-refresh svg{width:12px;height:12px}
+.page-heading .greeting-copy{font-size:14px}.page-heading h1{font-size:29px}.page-heading p{font-size:14px}
+.stat-card>div>span{font-size:12px}.stat-card>div>strong{font-size:26px}.stat-card strong small{font-size:12px}
+.section-heading h2{font-size:17px}.section-heading .step-number{font-size:11px}.small-label,.live-indicator{font-size:11px}
+.search-field input{font-size:13px}.search-field{height:39px}
+.material-info>strong{font-size:19px}.material-info b,.material-tile.selected .material-info b{font-size:20px}.material-info small{font-size:11px}.material-shortcut{font-size:10px}
+.material-keyboard-hint,.material-keyboard-hint kbd{font-size:12px}.custom-price-label strong{font-size:14px}.custom-price-label p{font-size:12px}.price-input,.price-input input{font-size:14px}.price-input>span:last-child{font-size:12px}.price-input{height:39px}
+.dimension-label>label:first-child{font-size:14px}.dimension-label>label>span,.toggle-label{font-size:12px}.dimension-input{font-size:19px}.dimension-input::placeholder{font-size:13px}
+.dimension-help{font-size:11px;flex-wrap:wrap;gap:9px}.text-button{font-size:12px}.quote-lines-heading{font-size:14px}.quote-lines-heading>span:last-child{font-size:12px}
+.quote-lines th{font-size:12px}.quote-lines td{font-size:14px}.quote-lines .quote-unit-price{font-size:13px}.quote-unit-price small{font-size:11px}
+.quote-total.spotlight-card{padding:0;background:radial-gradient(ellipse at 100% 100%,var(--edge-glow),transparent 80%),var(--panel-raised);box-shadow:none;border:1px solid var(--line);border-radius:7px}
+.quote-total .spotlight-card__border{display:none}
+.quote-meta{font-size:12px}.quote-amount>div>span{font-size:14px}.quote-amount>div>small{font-size:10px}.quote-amount>strong{font-size:39px}
+.quote-actions>.primary-button,.primary-button,.secondary-button{font-size:13px}.primary-button kbd{font-size:10px}.primary-button,.icon-action{height:41px}.icon-action{width:41px}
+.copy-policy,.weight-option,.notice,.inline-error,.table-note{font-size:12px}.quote-empty p{font-size:16px}.quote-empty>span{font-size:12px}
+.workspace-footer,.workspace-footer>span:last-child{font-size:11px}.row-tag{font-size:10px}
+.settings-file-card p{font-size:13px}.settings-file-card code{font-size:12px}.segmented-control button{font-size:13px;height:34px}.settings-price-table th,.settings-price-table td,.table-number-input{font-size:14px}.table-number-input{height:34px}
+.settings-save-bar{font-size:13px}.settings-save-bar small,.config-tips{font-size:12px}.price-table th,.price-table td{font-size:14px}.table-toolbar select{font-size:13px}
+.editor-controls>label{font-size:13px}.editor-style{font-size:12px}.editor-hint{font-size:12px;line-height:1.8}
+.update-panel{width:370px;max-height:calc(100vh - 60px);overflow:auto}
+.update-panel-heading>span{font-size:16px}.update-summary strong{font-size:14px}.update-summary small{font-size:12px}.update-close{height:29px;width:29px}
+.update-notes>span{font-size:12px}.update-notes p{font-size:13px}.update-install-note,.update-auto-check,.update-last-check{font-size:12px}.update-panel-actions .secondary-button{font-size:12px}
+.update-auto-check>span{display:none}.update-auto-check input{width:15px;height:15px}
+.update-progress{display:grid;gap:8px;margin-bottom:16px}.update-progress progress{width:100%;height:7px;accent-color:var(--accent)}.update-progress>span{font-size:12px;color:var(--secondary)}
+.update-prompt-backdrop{position:fixed;inset:0;display:grid;place-items:center;background:#080b1566;backdrop-filter:blur(4px);z-index:100;padding:24px}
+.update-prompt{width:min(490px,100%);max-height:calc(100vh - 48px);overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:30px;box-shadow:0 24px 80px #00000030;animation:workspace-enter .2s ease-out}
+.update-prompt-icon{display:grid;place-items:center;height:48px;width:48px;border:1px solid var(--line);border-radius:12px;background:var(--active-bg);color:var(--accent-ink);font-size:23px;margin-bottom:20px}
+.update-eyebrow{color:var(--accent-ink);font-size:13px}.update-prompt h2{font-size:23px;font-weight:550;line-height:1.5;margin:8px 0 12px;color:var(--ink)}.update-prompt>p{font-size:14px;line-height:1.9;color:var(--secondary);margin:0 0 20px}
+.update-version-route{display:flex;align-items:center;gap:14px;padding:15px 0;margin-bottom:15px;border-block:1px solid var(--line);font-size:14px}.update-version-route>span{color:var(--muted)}.update-version-route>strong{color:var(--ink);font-weight:550}.update-version-route>.verified-label{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--mint);font-size:12px}
+.update-prompt-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}.update-prompt-actions button{height:41px;padding:0 20px;font-size:14px}
+.workspace-content>div:not([hidden]){animation:workspace-enter .28s cubic-bezier(.2,.7,.2,1) both}.material-tile.selected{animation:material-select .22s ease-out}
+@keyframes workspace-enter{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}
+@keyframes material-select{from{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 15%,transparent)}to{box-shadow:var(--surface-light)}}
+@media(max-width:1200px){
+ .nav-item>span{font-size:13px}.page-heading h1{font-size:26px}.page-heading .greeting-copy{font-size:13px}.page-heading p{font-size:13px}.stat-card>div>span{font-size:11px}.stat-card>div>strong{font-size:24px}
+ .section-heading h2{font-size:16px}.small-label,.live-indicator{font-size:10px}.material-info>strong{font-size:18px}.material-info b{font-size:20px}.material-info small{font-size:10px}
+ .custom-price-label p{font-size:11px}.dimension-help{font-size:11px}.dimension-help .text-button{font-size:11px}.quote-unit-price small{font-size:10px}.quote-actions>.primary-button{font-size:12px}.primary-button kbd{font-size:9px}
+ .topbar-tools{gap:12px}.workspace-breadcrumb>svg{display:none}.today-weather{gap:6px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.spotlight-card__light,.spotlight-card__edge,.spotlight-card__grain{display:none}}

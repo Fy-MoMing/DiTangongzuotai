@@ -8,6 +8,7 @@ import WorkspaceGreeting, { LaunchGreeting } from './components/WorkspaceGreetin
 import SoftwareUpdates from './components/SoftwareUpdates';
 import './styles/studio.css';
 import './styles/linear.css';
+import './styles/linear-refinements.css';
 
 const PriceTable = lazy(() => import('./components/PriceTable'));
 const PriceSettings = lazy(() => import('./components/PriceSettings'));

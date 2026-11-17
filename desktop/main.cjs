@@ -5,6 +5,7 @@ const { pathToFileURL } = require('node:url');
 const { createPriceStore } = require('./price-config.cjs');
 const { createWeatherService } = require('./weather.cjs');
 const { createUpdateService } = require('./updates.cjs');
+const { createUpdateFiles } = require('./update-files.cjs');
 const { repository } = require('../config/github.json');
 const { spawn } = require('node:child_process');
 
@@ -163,11 +164,33 @@ if (!app.requestSingleInstanceLock()) {
     function checkSender(event) {
       if (!isAppUrl(event.senderFrame?.url) || event.senderFrame !== event.sender.mainFrame) throw new Error('Unsupported request');
     }
+    const updateDirectory = path.join(app.getPath('userData'), 'updates');
+    const updateFiles = createUpdateFiles({ directory: updateDirectory, fetchImpl: (url, options) => net.fetch(url, options) });
     const updateService = createUpdateService({
       currentVersion: app.getVersion(), repository,
       portable: Boolean(process.env.PORTABLE_EXECUTABLE_DIR),
       fetchImpl: (url, options) => globalThis.fetch(url, options),
       fallbackFetchImpl: (url, options) => net.fetch(url, options),
+      downloadAsset: updateFiles.download,
+      installAsset: async artifact => {
+        if (!await updateFiles.verify(artifact)) throw new Error('Invalid update checksum');
+        let command = artifact.file;
+        let args = [];
+        if (process.env.PORTABLE_EXECUTABLE_DIR) {
+          const original = process.env.PORTABLE_EXECUTABLE_FILE;
+          if (!original || path.dirname(path.resolve(original)) !== path.resolve(process.env.PORTABLE_EXECUTABLE_DIR)) throw new Error('Unknown portable location');
+          const helper = path.join(updateDirectory, 'apply-portable-update.ps1');
+          await fs.copyFile(path.join(__dirname, 'apply-portable-update.ps1'), helper);
+          command = path.join(process.env.WINDIR || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+          args = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', helper, '-OriginalPath', original, '-PackagePath', artifact.file, '-PreviousProcessId', String(process.pid), '-ExpectedSHA256', artifact.digest];
+        }
+        await new Promise((resolve, reject) => {
+          const child = spawn(command, args, { detached: true, stdio: 'ignore', windowsHide: true });
+          child.once('error', reject);
+          child.once('spawn', () => { child.unref(); resolve(); });
+        });
+        setTimeout(() => app.quit(), 150);
+      },
       openExternal: url => shell.openExternal(url),
       onChange: state => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('updates:changed', state); }
     });
@@ -177,7 +200,8 @@ if (!app.requestSingleInstanceLock()) {
       if (typeof force !== 'boolean') throw new Error('Invalid update request');
       return updateService.check(force);
     });
-    ipcMain.handle('updates:download', event => { checkSender(event); return updateService.openDownload(); });
+    ipcMain.handle('updates:download', event => { checkSender(event); return updateService.download(); });
+    ipcMain.handle('updates:install', event => { checkSender(event); return updateService.install(); });
     ipcMain.handle('updates:release', event => { checkSender(event); return updateService.openRelease(); });
     ipcMain.handle('weather:read', async (event, force) => {
       checkSender(event);

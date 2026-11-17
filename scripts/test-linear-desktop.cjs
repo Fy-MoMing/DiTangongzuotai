@@ -56,6 +56,7 @@ async function main() {
           assert.equal(await page.locator('.today-weather').isVisible(), true);
           assert.equal(await page.locator('.weather-temperature').innerText(), '8°C');
           assert.equal(await page.locator('.greeting-copy').innerText(), greeting);
+          await page.waitForTimeout(350);
           await page.screenshot({ path: path.join(output, `linear-${file}-${theme}-${width}.png`) });
         }
       }
@@ -64,6 +65,21 @@ async function main() {
     const fields = await page.locator('.material-info b').evaluateAll(elements => [...new Set(elements.map(el => getComputedStyle(el).color))]);
     assert.equal(fields.length, 1);
     assert.equal(await page.locator('.material-card img').count(), 0);
+    const readableType = await page.evaluate(() => ({
+      material: parseFloat(getComputedStyle(document.querySelector('.material-info>strong')).fontSize),
+      body: parseFloat(getComputedStyle(document.querySelector('.quote-lines td')).fontSize),
+      navigation: parseFloat(getComputedStyle(document.querySelector('.nav-item>span')).fontSize),
+    }));
+    assert.ok(readableType.material >= 18 && readableType.body >= 14 && readableType.navigation >= 13, JSON.stringify(readableType));
+    const logo = await page.locator('.brand-symbol').evaluate(element => {
+      const icon = element.querySelector('svg').getBoundingClientRect(), box = element.getBoundingClientRect();
+      return { dx: Math.abs(icon.x + icon.width / 2 - box.x - box.width / 2), dy: Math.abs(icon.y + icon.height / 2 - box.y - box.height / 2), transform: getComputedStyle(element).transform };
+    });
+    assert.ok(logo.dx < 1 && logo.dy < 1 && logo.transform === 'none', JSON.stringify(logo));
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    assert.equal(await page.locator('.spotlight-card__light').evaluate(element => getComputedStyle(element).display), 'none');
+    assert.equal(await page.locator('.material-tile.selected').evaluate(element => getComputedStyle(element).animationName), 'none');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.getByRole('button', { name: '检查软件更新', exact: true }).click();
     const updatePanel = await page.locator('#software-update-panel').boundingBox();
     assert.ok(updatePanel.x >= 0 && updatePanel.y >= 0 && updatePanel.x + updatePanel.width <= 1100, JSON.stringify(updatePanel));

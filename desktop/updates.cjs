@@ -30,15 +30,16 @@ function repositoryUrl(value, repository, kind) {
   }
 }
 
-function createUpdateService({ currentVersion, repository, portable = false, fetchImpl = globalThis.fetch, fallbackFetchImpl, openExternal = async () => {}, onChange = () => {}, now = Date.now }) {
+function createUpdateService({ currentVersion, repository, portable = false, fetchImpl = globalThis.fetch, fallbackFetchImpl, downloadAsset, installAsset, openExternal = async () => {}, onChange = () => {}, now = Date.now }) {
   const configured = validRepository(repository);
   let state = {
     currentVersion, repository: configured ? repository : '', portable,
     status: configured ? 'idle' : 'unconfigured', latestVersion: null,
     releaseUrl: configured ? `https://github.com/${repository}/releases/latest` : null,
-    downloadUrl: null, notes: '', checkedAt: null, error: null
+    downloadUrl: null, notes: '', checkedAt: null, error: null, progress: null
   };
   let pending;
+  let asset, downloaded, downloading;
   const getStatus = () => ({ ...state });
   const updateState = value => { state = { ...state, ...value }; onChange(getStatus()); return getStatus(); };
   async function fetchRelease(url, options) {
@@ -64,15 +65,25 @@ function createUpdateService({ currentVersion, repository, portable = false, fet
       const compared = compareVersions(release.tag_name, currentVersion);
       if (release.draft || release.prerelease || compared === null) throw new Error('暂时没有可用的正式更新。');
       const assetNames = portable ? ['DiTan-Portable.exe', '地毯工作台.exe'] : ['DiTan-Setup.exe', '地毯工作台-安装版.exe'];
-      const asset = Array.isArray(release.assets) && release.assets.find(item => assetNames.includes(item.name) && repositoryUrl(item.browser_download_url, repository, 'download'));
-      return updateState({
+      const releaseAsset = Array.isArray(release.assets) && release.assets.find(item => assetNames.includes(item.name) && repositoryUrl(item.browser_download_url, repository, 'download'));
+      const checksums = Array.isArray(release.assets) && release.assets.find(item => item.name === 'SHA256SUMS.txt' && repositoryUrl(item.browser_download_url, repository, 'download'));
+      const tagPath = `/${repository}/releases/download/${encodeURIComponent(release.tag_name)}/`;
+      const matchingAsset = releaseAsset && new URL(releaseAsset.browser_download_url).pathname.startsWith(tagPath);
+      const previousVersion = state.latestVersion;
+      const nextVersion = parseVersion(release.tag_name).join('.');
+      if (previousVersion !== nextVersion) downloaded = null;
+      asset = matchingAsset ? { name: releaseAsset.name, url: `${DOWNLOAD_PREFIX}${releaseAsset.browser_download_url}`, digest: releaseAsset.digest, size: releaseAsset.size, version: nextVersion, portable,
+        checksumUrl: checksums && new URL(checksums.browser_download_url).pathname.startsWith(tagPath) ? `${DOWNLOAD_PREFIX}${checksums.browser_download_url}` : null } : null;
+      updateState({
         status: compared > 0 ? 'available' : 'current',
         latestVersion: parseVersion(release.tag_name).join('.'),
         releaseUrl: repositoryUrl(release.html_url, repository, 'tag') ? release.html_url : `https://github.com/${repository}/releases/latest`,
-        downloadUrl: asset ? `${DOWNLOAD_PREFIX}${asset.browser_download_url}` : null,
+        downloadUrl: asset?.url || null,
         notes: typeof release.body === 'string' ? release.body.slice(0, 6000) : '',
         checkedAt: now(), error: null
       });
+      if (compared > 0 && asset && downloadAsset) void download();
+      return getStatus();
     } catch (error) {
       const known = ['检查过于频繁，请稍后再试。', '仓库还没有可用的公开正式版本。', '连接 GitHub 失败，请稍后重试。', '暂时没有可用的正式更新。'];
       return updateState({ status: 'error', downloadUrl: null, checkedAt: now(), error: known.includes(error.message) ? error.message : '连接 GitHub 失败，请检查网络后重试。' });
@@ -80,10 +91,29 @@ function createUpdateService({ currentVersion, repository, portable = false, fet
   }
   function check(force = false) {
     if (!configured) return Promise.resolve(getStatus());
+    if (['downloading', 'ready', 'installing'].includes(state.status)) return Promise.resolve(getStatus());
     if (pending) return pending;
     if (!force && state.checkedAt !== null && now() - state.checkedAt >= 0 && now() - state.checkedAt < (state.status === 'error' ? 60000 : CHECK_INTERVAL)) return Promise.resolve(getStatus());
     pending = request().finally(() => { pending = null; });
     return pending;
+  }
+  function download() {
+    if (downloading) return downloading;
+    if (!downloadAsset || !asset || !['available', 'download-error', 'ready'].includes(state.status)) return Promise.resolve(false);
+    if (state.status === 'ready') return Promise.resolve(getStatus());
+    updateState({ status: 'downloading', error: null, progress: { percent: 0, transferred: 0, total: asset.size || 0 } });
+    downloading = Promise.resolve().then(() => downloadAsset(asset, progress => updateState({ progress }))).then(result => {
+      downloaded = result;
+      return updateState({ status: 'ready', error: null });
+    }).catch(error => updateState({ status: 'download-error', error: /[\u4e00-\u9fff]/.test(error.message || '') ? error.message : '网络中断，更新未下载完成，请重新下载。' }))
+      .finally(() => { downloading = null; });
+    return downloading;
+  }
+  async function install() {
+    if (state.status !== 'ready' || !downloaded || !installAsset) return false;
+    updateState({ status: 'installing', error: null });
+    try { await installAsset(downloaded); return true; }
+    catch { updateState({ status: 'ready', error: '无法启动更新，请重试或前往发布页下载。' }); return false; }
   }
   async function openDownload() {
     if (state.status !== 'available') return false;
@@ -95,7 +125,7 @@ function createUpdateService({ currentVersion, repository, portable = false, fet
     await openExternal(state.releaseUrl);
     return true;
   }
-  return { getStatus, check, openDownload, openRelease };
+  return { getStatus, check, download, install, openDownload, openRelease };
 }
 
 module.exports = { createUpdateService, compareVersions };

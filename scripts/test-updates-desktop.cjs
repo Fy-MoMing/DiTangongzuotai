@@ -2,107 +2,85 @@ const { _electron: electron } = require('playwright-core');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 const version = require('../package.json').version;
-const versionParts = version.split('.').map(Number);
-const nextVersion = `${versionParts[0]}.${versionParts[1]}.${versionParts[2] + 1}`;
+const nextVersion = `${version.split('.')[0]}.${Number(version.split('.')[1]) + 1}.0`;
 
 async function main() {
   const output = path.resolve(process.env.DESKTOP_TEST_OUTPUT || '.test-output');
-  await fs.mkdir(output, {recursive:true});
-  const userData = await fs.mkdtemp(path.join(output, 'updates-'));
-  const executablePath = process.env.DESKTOP_TEST_EXE || path.resolve('release/win-unpacked/地毯工作台.exe');
-  const env = {...process.env};delete env.ELECTRON_RUN_AS_NODE;
-  const application = await electron.launch({executablePath,args:[`--user-data-dir=${userData}`],env,timeout:45000});
+  await fs.mkdir(output, { recursive: true });
+  const userData = await fs.mkdtemp(path.join(output, 'auto-updates-'));
+  const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
+  const application = await electron.launch({ executablePath: process.env.DESKTOP_TEST_EXE || path.resolve('release/win-unpacked/地毯工作台.exe'), args: [`--user-data-dir=${userData}`], env, timeout: 45000 });
   try {
     const page = await application.firstWindow();
-    const errors=[];page.on('pageerror',error=>errors.push(error.message));
-    await application.evaluate(({session})=>{
-      session.defaultSession.webRequest.onBeforeRequest({urls:['http://*/*','https://*/*']},(_details,callback)=>callback({cancel:true}));
-      globalThis.fetch=async()=>{throw new Error('offline');};
+    const errors = []; page.on('pageerror', error => errors.push(error.message));
+    await application.evaluate(({ session }) => {
+      session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (_details, callback) => callback({ cancel: true }));
+      globalThis.fetch = async () => { throw new Error('offline'); };
     });
     await page.reload();
-    await page.getByRole('heading',{name:'选择地毯材质',exact:true}).waitFor();
-    await page.evaluate(()=>document.fonts.ready);
-    const actualStatus=await page.evaluate(()=>window.desktop.getUpdateStatus());
-    assert.equal(actualStatus.currentVersion,version);
-    assert.equal(actualStatus.repository,'Fy-MoMing/DiTangongzuotai');
-    await application.evaluate(({shell},latestVersion)=>{
-      globalThis.__openedUpdateUrls=[];
-      shell.openExternal=async url=>{globalThis.__openedUpdateUrls.push(url);};
-      globalThis.fetch=async()=>({ok:true,status:200,json:async()=>({
-        tag_name:`v${latestVersion}`,html_url:`https://github.com/Fy-MoMing/DiTangongzuotai/releases/tag/v${latestVersion}`,
-        assets:[{name:'DiTan-Setup.exe',browser_download_url:`https://github.com/Fy-MoMing/DiTangongzuotai/releases/download/v${latestVersion}/DiTan-Setup.exe`}]
-      })});
-    },nextVersion);
-    const acceleratedStatus=await page.evaluate(()=>window.desktop.checkUpdates(true));
-    const acceleratedUrl=`https://ghfast.top/https://github.com/Fy-MoMing/DiTangongzuotai/releases/download/v${nextVersion}/DiTan-Setup.exe`;
-    assert.equal(acceleratedStatus.downloadUrl,acceleratedUrl);
-    await page.evaluate(()=>window.desktop.downloadUpdate());
-    assert.deepEqual(await application.evaluate(()=>globalThis.__openedUpdateUrls),[acceleratedUrl]);
-    await application.evaluate(()=>{globalThis.fetch=async()=>{throw new Error('offline');};});
-    console.log('PASS: real update IPC opens matching installer through ghfast.top');
-    assert.equal(await page.locator('.rail-version-value').innerText(),`v${version}`);
-    assert.equal(await page.locator('.rail-version small').innerText(),'检查更新');
-    await page.getByRole('button',{name:'检查软件更新',exact:true}).click();
-    const panel=page.getByRole('region',{name:'软件更新',exact:true});
-    await panel.waitFor();
-    await panel.getByRole('checkbox',{name:/启动后自动检查更新/}).uncheck();
-    await panel.getByRole('button',{name:'检查更新',exact:true}).click();
-    await panel.getByText('连接 GitHub 失败，请检查网络后重试。',{exact:true}).waitFor();
-    assert.equal(await panel.getByRole('button',{name:'检查更新',exact:true}).isEnabled(),true);
-    console.log('PASS: real IPC version and repository; offline check gives an inline retry state');
+    await page.getByRole('heading', { name: '选择地毯材质', exact: true }).waitFor();
+    assert.equal((await page.evaluate(() => window.desktop.getUpdateStatus())).currentVersion, version);
+    await page.getByRole('button', { name: '检查软件更新', exact: true }).click();
+    const panel = page.getByRole('region', { name: '软件更新', exact: true });
+    await panel.getByRole('checkbox', { name: /启动后自动检查更新/ }).uncheck();
+    await panel.getByRole('button', { name: '检查更新', exact: true }).click();
+    await panel.getByText('连接 GitHub 失败，请检查网络后重试。', { exact: true }).waitFor();
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    console.log('PASS: offline checks remain inline; no update prompt before verified download');
 
-    await application.evaluate(({ipcMain,app},latestVersion)=>{
-      globalThis.__updateCheckCount=0;
-      globalThis.__updateDownloads=0;
-      ipcMain.removeHandler('updates:check');
-      ipcMain.handle('updates:check',async(event,force)=>{
-        globalThis.__updateCheckCount++;
-        globalThis.__updateForced=force;
-        const state={currentVersion:app.getVersion(),repository:'Fy-MoMing/DiTangongzuotai',portable:false,status:'checking',checkedAt:null};
-        event.sender.send('updates:changed',state);
-        await new Promise(resolve=>setTimeout(resolve,150));
-        const result={...state,status:'available',latestVersion,checkedAt:Date.now(),notes:'优化报价体验。\n保留现有价格配置。',downloadUrl:`https://github.com/Fy-MoMing/DiTangongzuotai/releases/download/v${latestVersion}/setup.exe`};
-        event.sender.send('updates:changed',result);return result;
-      });
-      ipcMain.removeHandler('updates:download');
-      ipcMain.handle('updates:download',()=>{globalThis.__updateDownloads++;return true;});
-    },nextVersion);
-    await panel.getByRole('button',{name:'检查更新',exact:true}).click();
-    await panel.getByText(`发现新版本 v${nextVersion}`,{exact:true}).waitFor();
-    assert.equal(await page.locator('.rail-version.has-update').count(),1);
-    assert.equal(await application.evaluate(()=>globalThis.__updateForced),true);
-    await panel.getByRole('button',{name:'下载新版',exact:true}).click();
-    assert.equal(await application.evaluate(()=>globalThis.__updateDownloads),1);
-    assert.match(await panel.innerText(),/运行新版安装包/);
-    await page.screenshot({path:path.join(output,'updates-light.png')});
+    await application.evaluate(({ net, ipcMain }, { latestVersion, digest }) => {
+      const payload = Buffer.from('integration-test package; never executed');
+      globalThis.__updateDownloads = []; globalThis.__installRequests = 0;
+      const originalNetFetch = net.fetch.bind(net);
+      globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ tag_name: `v${latestVersion}`, body: '新版界面与后台更新。', assets: [{ name: 'DiTan-Setup.exe', size: payload.length, digest: `sha256:${digest}`, browser_download_url: `https://github.com/Fy-MoMing/DiTangongzuotai/releases/download/v${latestVersion}/DiTan-Setup.exe` }] }) });
+      net.fetch = async (url, options) => {
+        if (!url.startsWith('https://ghfast.top/')) return originalNetFetch(url, options);
+        globalThis.__updateDownloads.push(url); await new Promise(resolve => setTimeout(resolve, 400)); return new Response(payload);
+      };
+      ipcMain.removeHandler('updates:install');
+      ipcMain.handle('updates:install', () => { globalThis.__installRequests++; return false; });
+    }, { latestVersion: nextVersion, digest: createHash('sha256').update('integration-test package; never executed').digest('hex') });
+    await panel.getByRole('button', { name: '检查更新', exact: true }).click();
+    const prompt = page.getByRole('dialog', { name: '更新已就绪，现在安装？' });
+    await prompt.waitFor();
+    assert.equal(await application.evaluate(() => globalThis.__installRequests), 0);
+    assert.deepEqual(await application.evaluate(() => globalThis.__updateDownloads), [`https://ghfast.top/https://github.com/Fy-MoMing/DiTangongzuotai/releases/download/v${nextVersion}/DiTan-Setup.exe`]);
+    assert.equal((await page.evaluate(() => window.desktop.getUpdateStatus())).status, 'ready');
+    assert.match(await prompt.innerText(), /已校验/);
+    assert.equal(await prompt.getByRole('button', { name: '稍后再说' }).evaluate(element => element === document.activeElement), true);
+    await page.keyboard.press('Shift+Tab');
+    assert.equal(await prompt.getByRole('button', { name: '立即更新' }).evaluate(element => element === document.activeElement), true);
+    await prompt.getByRole('button', { name: '稍后再说' }).click();
+    await page.locator('#dimensions').fill('124*240\n120*120');
+    await page.getByRole('button', { name: '复制所有尺寸价格', exact: false }).click();
+    assert.equal(await application.evaluate(() => globalThis.__installRequests), 0);
+    await page.getByRole('button', { name: '检查软件更新', exact: true }).click();
+    await panel.getByRole('button', { name: '查看更新并安装' }).click();
+    await prompt.waitFor();
+    await page.screenshot({ path: path.join(output, 'update-prompt-light.png') });
     await page.keyboard.press('Escape');
-    assert.equal(await panel.count(),0);
-    assert.equal(await page.locator('.rail-version').evaluate(element=>element===document.activeElement),true);
-    await page.getByRole('button',{name:'切换到夜间主题',exact:true}).click();
-    await page.getByRole('button',{name:'检查软件更新',exact:true}).click();
-    await page.screenshot({path:path.join(output,'updates-dark.png')});
-    await application.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(1100,800));
-    const bounds=await panel.boundingBox();
-    assert.ok(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=1100&&bounds.y+bounds.height<=800,JSON.stringify(bounds));
-    await panel.getByRole('checkbox',{name:/启动后自动检查更新/}).check();
-    await panel.getByRole('button',{name:'关闭更新面板',exact:true}).click();
-    const count=await application.evaluate(()=>globalThis.__updateCheckCount);
-    await page.waitForFunction(async expected=>{
-      const value=await window.desktop.getUpdateStatus();
-      return document.querySelector('.rail-version.has-update')&&value.currentVersion;
-    },count);
-    await new Promise(resolve=>setTimeout(resolve,8400));
-    assert.equal(await application.evaluate(()=>globalThis.__updateCheckCount),count+1);
-    assert.equal(await application.evaluate(()=>globalThis.__updateForced),false);
-    assert.equal(await page.locator('#software-update-panel').count(),0);
-    await page.getByRole('button',{name:'检查软件更新',exact:true}).click();
-    await panel.getByRole('checkbox',{name:/启动后自动检查更新/}).uncheck();
+    await page.getByRole('button', { name: '切换到夜间主题', exact: true }).click();
+    await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1100, 800));
+    await page.getByRole('button', { name: '检查软件更新', exact: true }).click();
+    await panel.getByRole('button', { name: '查看更新并安装' }).click();
+    await prompt.waitFor();
+    const bounds = await prompt.boundingBox();
+    assert.ok(bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= 1100 && bounds.y + bounds.height <= 800);
+    await page.screenshot({ path: path.join(output, 'update-prompt-dark.png') });
+    await prompt.getByRole('button', { name: '立即更新' }).click();
+    assert.equal(await application.evaluate(() => globalThis.__installRequests), 1);
+    await prompt.getByRole('alert').getByText('无法启动更新，请重试或前往发布页下载。').waitFor();
+    await page.keyboard.press('Escape');
     await page.reload();
-    await page.getByRole('button',{name:'检查软件更新',exact:true}).click();
-    assert.equal(await page.getByRole('checkbox',{name:/启动后自动检查更新/}).isChecked(),false);
-    assert.deepEqual(errors,[]);
-    console.log('PASS: available update, download action, background check without popup, preference persistence, day/night and narrow window');
-  } finally {await application.close();}
+    // A verified cached package is offered again on a new launch/reload.
+    await prompt.waitFor();
+    await prompt.getByRole('button', { name: '稍后再说' }).click();
+    await page.getByRole('button', { name: '检查软件更新', exact: true }).click();
+    assert.equal(await panel.getByRole('checkbox', { name: /启动后自动检查更新/ }).isChecked(), false);
+    assert.deepEqual(errors, []);
+    console.log('PASS: real IPC automatically downloads and verifies via ghfast; explicit install consent, defer, keyboard focus, day/night, narrow window, and persisted preferences');
+  } finally { await application.close(); }
 }
-main().catch(error=>{console.error(error);process.exitCode=1;});
+main().catch(error => { console.error(error); process.exitCode = 1; });
