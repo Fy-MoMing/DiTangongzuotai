@@ -37,7 +37,7 @@ test('direct public-IP lookup supplies explicit coordinates to weather instead o
   const locationUrls=[],weatherUrls=[];
   const direct = async url => {
     locationUrls.push(url);
-    if(url.includes('ip.3322.net'))return {ok:true,text:async()=>'203.0.113.24\n'};
+    if(url.includes('myip.ipip.net'))return {ok:true,text:async()=>'203.0.113.24\n'};
     assert.match(url,/ipwho\.is\/203\.0\.113\.24\?lang=zh-CN$/);
     return {ok:true,json:async()=>({success:true,ip:'203.0.113.24',city:'石家庄',latitude:38.04,longitude:114.51})};
   };
@@ -53,8 +53,8 @@ test('private addresses are rejected, backup public-IP service works and mismatc
   const urls=[];
   const direct=async url=>{
     urls.push(url);
-    if(url.includes('3322'))return {ok:true,text:async()=>'192.168.1.5'};
-    if(url.includes('ipip.net'))return {ok:true,text:async()=>'当前 IP：203.0.113.24  来自于：中国 河北 石家庄'};
+    if(url.includes('ipip.net'))return {ok:true,text:async()=>'192.168.1.5'};
+    if(url.includes('checkip.amazonaws.com'))return {ok:true,text:async()=>'203.0.113.24\n'};
     return {ok:true,json:async()=>({success:true,ip:'203.0.113.24',city:'石家庄',latitude:38.04,longitude:114.51})};
   };
   const weather=async()=>({ok:true,json:async()=>({current_condition:[{weatherCode:'113',temp_C:'12'}]})});
@@ -65,6 +65,32 @@ test('private addresses are rejected, backup public-IP service works and mismatc
     : {ok:true,text:async()=>'203.0.113.24'}),/Location/);
 });
 
+test('weather fallback keeps the IP-derived coordinates and translates Open-Meteo conditions', async () => {
+  const { fetchCurrentWeather } = await weatherModel;
+  const direct = async url => url.includes('myip.ipip.net')
+    ? {ok:true,text:async()=>'203.0.113.24'}
+    : {ok:true,json:async()=>({success:true,ip:'203.0.113.24',city:'石家庄',latitude:38.04,longitude:114.51})};
+  for (const [code,condition] of [[0,'晴天'],[3,'阴天'],[61,'雨天'],[71,'雪天'],[95,'雷雨']]) {
+    const urls=[];
+    const request=async url=>{
+      urls.push(url);
+      if(url.includes('wttr.in')) return {ok:false,status:503};
+      return {ok:true,json:async()=>({current:{temperature_2m:9.8,weather_code:code}})};
+    };
+    const result=await fetchCurrentWeather(request,()=>1000,direct);
+    assert.deepEqual(result,{city:'石家庄',condition,temperature:9.8,updatedAt:1000,locationMethod:'public-ip-v2'});
+    assert.equal(urls.length,2);
+    const fallback=new URL(urls[1]);
+    assert.equal(fallback.host,'api.open-meteo.com');
+    assert.equal(fallback.searchParams.get('latitude'),'38.04');
+    assert.equal(fallback.searchParams.get('longitude'),'114.51');
+  }
+  for (const primary of [async()=>{throw new Error('timeout');}, async()=>({ok:true,json:async()=>({current_condition:[{temp_C:''}]})})]) {
+    const request=async url=>url.includes('wttr.in') ? primary() : {ok:true,json:async()=>({current:{temperature_2m:0,weather_code:3}})};
+    assert.equal((await fetchCurrentWeather(request,Date.now,direct)).temperature,0);
+  }
+});
+
 test('weather requests deduplicate; a recent cache works offline but an old cache is not shown as today', async () => {
   const directory=await fs.mkdtemp(path.join(os.tmpdir(),'carpet-weather-test-'));
   const cachePath=path.join(directory,'weather-cache.json');
@@ -72,7 +98,7 @@ test('weather requests deduplicate; a recent cache works offline but an old cach
   const fetchImpl=async url=>{
     calls++;
     if(offline)throw new Error('offline');
-    if(url.includes('ip.3322.net'))return {ok:true,text:async()=>'203.0.113.24'};
+    if(url.includes('myip.ipip.net'))return {ok:true,text:async()=>'203.0.113.24'};
     return {ok:true,json:async()=>url.includes('ipwho.is')
       ? {success:true,city:'石家庄',latitude:38.04,longitude:114.51}
       : {current_condition:[{weatherCode:'113',temp_C:'12'}]}};

@@ -34,7 +34,7 @@ function publicIPv4(value) {
 }
 
 async function getPublicIP(fetchImpl) {
-  for (const url of ['https://ip.3322.net/', 'https://myip.ipip.net/']) {
+  for (const url of ['https://myip.ipip.net/', 'https://checkip.amazonaws.com/']) {
     try {
       const response = await fetchImpl(url, { signal: AbortSignal.timeout(5000), headers: { Accept: 'text/plain' } });
       if (!response.ok) continue;
@@ -58,11 +58,29 @@ export async function fetchCurrentWeather(fetchImpl = globalThis.fetch, now = Da
   const city = typeof location.city === 'string' && location.city.trim() ? location.city.trim() : location.region?.trim();
   if (location.success !== true || (location.ip && location.ip !== address) || !city || [location.latitude,location.longitude].some(value => value == null || String(value).trim() === '') || !Number.isFinite(latitude) || !Number.isFinite(longitude)
     || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) throw new Error('Location unavailable');
-  const weather = await json(`https://wttr.in/${latitude},${longitude}?format=j1&lang=zh-cn`, 12000);
-  const current = weather.current_condition?.[0];
-  const rawTemperature = current?.temp_C;
-  if (rawTemperature === undefined || rawTemperature === null || String(rawTemperature).trim() === '') throw new Error('Temperature unavailable');
-  const result = { city, condition: weatherCondition(current.weatherCode), temperature: Number(rawTemperature), updatedAt: now(), locationMethod: WEATHER_LOCATION_METHOD };
-  if (!isWeatherSnapshot(result)) throw new Error('Invalid weather response');
-  return result;
+  const snapshot = (rawTemperature, condition) => {
+    if (rawTemperature === undefined || rawTemperature === null || String(rawTemperature).trim() === '') throw new Error('Temperature unavailable');
+    const result = { city, condition, temperature: Number(rawTemperature), updatedAt: now(), locationMethod: WEATHER_LOCATION_METHOD };
+    if (!isWeatherSnapshot(result)) throw new Error('Invalid weather response');
+    return result;
+  };
+  try {
+    const weather = await json(`https://wttr.in/${latitude},${longitude}?format=j1&lang=zh-cn`, 8000);
+    const current = weather.current_condition?.[0];
+    return snapshot(current?.temp_C, weatherCondition(current?.weatherCode));
+  } catch {
+    const weather = await json(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`, 10000);
+    return snapshot(weather.current?.temperature_2m, openMeteoCondition(weather.current?.weather_code));
+  }
+}
+
+function openMeteoCondition(code) {
+  if (code === 0) return '晴天';
+  if ([1,2].includes(code)) return '多云';
+  if (code === 3) return '阴天';
+  if ([45,48].includes(code)) return '雾天';
+  if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return '雨天';
+  if ([71,73,75,77,85,86].includes(code)) return '雪天';
+  if ([95,96,99].includes(code)) return '雷雨';
+  return '天气未知';
 }

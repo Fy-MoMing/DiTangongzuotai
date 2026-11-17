@@ -21,15 +21,19 @@ function WorkspaceGreeting() {
   }, []);
   useEffect(() => {
     void refresh(false);
-    const interval = setInterval(() => { void refresh(false); }, 15 * 60 * 1000);
     const online = () => { void refresh(true); };
     window.addEventListener('online', online);
-    return () => { clearInterval(interval); window.removeEventListener('online', online); };
+    return () => { window.removeEventListener('online', online); };
   }, [refresh]);
+  useEffect(() => {
+    if (!weather) return;
+    const timeout = setTimeout(() => { void refresh(false); }, weather.error || weather.cached ? 60000 : 15 * 60 * 1000);
+    return () => { clearTimeout(timeout); };
+  }, [refresh, weather]);
   const available = weather && !weather.error;
   const Icon = available ? weather.condition.includes('雪') ? FiCloudSnow : weather.condition.includes('雨') ? FiCloudRain : weather.condition === '晴天' ? FiSun : FiCloud : FiCloud;
   return <div className="topbar-greeting">
-    <div className="today-weather" aria-label="今日天气">
+    <div className="today-weather" aria-label="今日天气" title="天气数据：wttr.in / Open-Meteo.com">
       <Icon className={`weather-symbol ${available && weather.condition === '晴天' ? 'sunny' : ''}`} />
       <span className="weather-label">今日天气</span>
       {available ? <>
