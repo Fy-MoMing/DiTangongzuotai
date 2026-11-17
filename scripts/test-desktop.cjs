@@ -309,7 +309,7 @@ async function main() {
     await page.getByRole('button',{name:'切换到日间主题',exact:true}).click();
     assert.equal(await page.locator('.night-desktop').getAttribute('data-theme'),'light');
     assert.equal((await materialPriceColors()).length,1);
-    assert.equal((await application.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBackgroundColor())).toLowerCase(),'#f5f4f0');
+    assert.equal((await application.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].getBackgroundColor())).toLowerCase(),'#f7f7f8');
     await page.screenshot({path:path.join(output,'calculator-light.png')});
     await navigate('价格配置');
     await page.getByRole('button',{name:'每平重量',exact:true}).click();

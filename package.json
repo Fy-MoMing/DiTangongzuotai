@@ -1,6 +1,6 @@
 {
   "name": "carpet-studio-desktop",
-  "version": "1.4.7",
+  "version": "1.5.0",
   "private": true,
   "description": "地毯价格计算器 Windows 桌面版",
   "author": "Carpet Studio",
@@ -12,6 +12,7 @@
     "pack": "npm run build && electron-builder --win --x64 --dir",
     "dist": "npm run build && electron-builder --win --x64 --publish never && node scripts/export-prices.cjs",
     "test:desktop": "node scripts/test-desktop.cjs",
+    "test:appearance": "node scripts/test-linear-desktop.cjs",
     "test:pricing": "node --test scripts/test-pricing.cjs",
     "test:workspace": "node --test scripts/test-workspace.cjs",
     "benchmark:desktop": "node scripts/benchmark-desktop.cjs",

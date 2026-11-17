@@ -52,7 +52,6 @@ async function main() {
     assert.equal(await page.title(),'地毯工作台');
     assert.equal(await page.locator('.material-card img').count(),0);
     assert.match(await page.locator('.night-desktop').evaluate(element=>getComputedStyle(element).fontFamily),/Manrope/);
-    assert.match(await page.locator('.topbar-config').evaluate(element=>getComputedStyle(element).backgroundImage),/255, 160, 91/);
     const prices = await page.evaluate(()=>window.desktop.getPrices());
     assert.deepEqual(prices.config['产品'].map(p=>p['名称']),['条纹','菱形方格','硬丝','平面','流星毯','丝圈','宽条纹','硅藻泥','菠萝纹']);
     assert.deepEqual(prices.config['产品'].map(p=>p['编号']),['1','2','3','4','5','6','7','8','9']);

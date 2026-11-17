@@ -80,9 +80,9 @@ function createWindow() {
     minWidth: 1100,
     minHeight: 760,
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#141a22', symbolColor: '#b5c0ce', height: 40 },
+    titleBarOverlay: { color: '#f7f7f8', symbolColor: '#7c838f', height: 32 },
     show: false,
-    backgroundColor: '#141a22',
+    backgroundColor: '#f7f7f8',
     icon: path.join(__dirname, 'assets', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -194,8 +194,8 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle('theme:set', (event, theme) => {
       checkSender(event);
       if (!['dark', 'light'].includes(theme)) throw new Error('Unsupported theme');
-      const color = theme === 'light' ? '#f5f4f0' : '#141a22';
-      mainWindow?.setTitleBarOverlay({ color, symbolColor: theme === 'light' ? '#526075' : '#b5c0ce', height: 40 });
+      const color = theme === 'light' ? '#f7f7f8' : '#17181c';
+      mainWindow?.setTitleBarOverlay({ color, symbolColor: theme === 'light' ? '#7c838f' : '#939ba8', height: 32 });
       mainWindow?.setBackgroundColor(color);
     });
     ipcMain.handle('prices:save', (event, value) => { checkSender(event); return priceStore.save(value); });

@@ -56,6 +56,10 @@ jobs:
         run: node scripts/test-updates-desktop.cjs
         env:
           DESKTOP_TEST_EXE: ${{ github.workspace }}\release\win-unpacked\地毯工作台.exe
+      - name: Verify day and night workspace
+        run: npm run test:appearance
+        env:
+          DESKTOP_TEST_EXE: ${{ github.workspace }}\release\win-unpacked\地毯工作台.exe
       - name: Prepare release files
         shell: pwsh
         run: |

@@ -3,8 +3,12 @@ import { FiCloud, FiCloudRain, FiCloudSnow, FiSun, FiRefreshCw, FiMapPin } from 
 import { getLaunchGreeting } from '../utils/greetings';
 import { fetchCurrentWeather } from '../../../shared/weather.mjs';
 
-function WorkspaceGreeting() {
+export const LaunchGreeting = React.memo(function LaunchGreeting() {
   const [greeting] = useState(getLaunchGreeting);
+  return <p className="greeting-copy"><FiSun aria-hidden="true" />{greeting}</p>;
+});
+
+function WorkspaceGreeting() {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const refresh = useCallback(async force => {
@@ -25,7 +29,6 @@ function WorkspaceGreeting() {
   const available = weather && !weather.error;
   const Icon = available ? weather.condition.includes('雪') ? FiCloudSnow : weather.condition.includes('雨') ? FiCloudRain : weather.condition === '晴天' ? FiSun : FiCloud : FiCloud;
   return <div className="topbar-greeting">
-    <p className="greeting-copy">{greeting}</p>
     <div className="today-weather" aria-label="今日天气">
       <Icon className={`weather-symbol ${available && weather.condition === '晴天' ? 'sunny' : ''}`} />
       <span className="weather-label">今日天气</span>
