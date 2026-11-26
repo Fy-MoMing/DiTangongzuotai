@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { FiGrid, FiImage, FiList, FiSettings, FiArrowUpRight, FiCheckCircle, FiSearch, FiMoon, FiSun, FiChevronDown } from 'react-icons/fi';
+import { FiGrid, FiImage, FiList, FiSettings, FiArrowUpRight, FiCheckCircle, FiMoon, FiSun, FiChevronDown } from 'react-icons/fi';
 import defaults from '../../config/prices.json';
 import { normalizePrices } from '../../config/normalize-prices.mjs';
 import MaterialPicker from './components/MaterialPicker';
@@ -33,12 +33,21 @@ function Workspace() {
     setOpenedPages(current => current.has(id) ? current : new Set([...current, id]));
     setPageId(id);
   }, []);
-  const [globalSearch, setGlobalSearch] = useState('');
   const workspaceScroll = React.useRef(null);
   useEffect(() => { workspaceScroll.current?.scrollTo({ top: 0 }); }, [pageId]);
   const [snapshot, setSnapshot] = useState({ config: defaults, path: '', error: null });
   const [selectedId, setSelectedId] = useState('1');
   const [customPrice, setCustomPrice] = useState(0);
+  const [keepCustomPrice, setKeepCustomPrice] = useState(false);
+  const resetCustomPrice = useCallback(() => { setCustomPrice(0); setKeepCustomPrice(false); }, []);
+  const changeCustomPrice = useCallback(price => {
+    setCustomPrice(price);
+    if (!price) setKeepCustomPrice(false);
+  }, []);
+  const selectMaterial = useCallback(product => {
+    if (product['编号'] !== selectedId && !keepCustomPrice) setCustomPrice(0);
+    setSelectedId(product['编号']);
+  }, [selectedId, keepCustomPrice]);
   const [readyMade, setReadyMade] = useState(defaults['现成价格优先']);
   const config = snapshot.config;
   const page = pages.find(p => p.id === pageId);
@@ -54,12 +63,11 @@ function Workspace() {
       const product = config['产品'].find(item => item['编号'] === materialId && item['支持定制']);
       if (!product) return;
       event.preventDefault();
-      setSelectedId(product['编号']);
-      setGlobalSearch('');
+      selectMaterial(product);
     };
     window.addEventListener('keydown', onMaterialKey);
     return () => window.removeEventListener('keydown', onMaterialKey);
-  }, [pageId, config]);
+  }, [pageId, config, selectMaterial]);
   const reload = useCallback(async () => {
     try {
       const next = window.desktop?.getPrices ? await window.desktop.getPrices() : (() => {
@@ -85,7 +93,6 @@ function Workspace() {
     <div className="studio-shell">
     <aside className="studio-sidebar">
       <div className="topbar-brand"><span className="brand-symbol"><FiGrid /></span><strong>地毯工作台</strong><FiChevronDown /></div>
-      <label className="global-search"><FiSearch /><input aria-label="全局搜索材质" placeholder="搜索材质…" value={globalSearch} onChange={e => { setGlobalSearch(e.target.value); navigate('calculator'); }} /></label>
       <span className="sidebar-label">工作空间</span>
       <nav aria-label="工作台导航">{pages.map(p => <React.Fragment key={p.id}>{p.id === 'settings' && <><div className="rail-divider" /><span className="sidebar-label">管理</span></>}<button aria-label={p.label} aria-current={pageId === p.id ? 'page' : undefined} title={p.label} className={`nav-item ${pageId === p.id ? 'active' : ''}`} onClick={() => navigate(p.id)}><p.icon /><span>{p.label}</span></button></React.Fragment>)}</nav>
       <div className="rail-bottom"><button className="rail-mode" aria-label={theme === 'dark' ? '切换到日间主题' : '切换到夜间主题'} title={theme === 'dark' ? '切换到日间主题' : '切换到夜间主题'} aria-pressed={theme === 'light'} onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}><span className={theme === 'light' ? 'selected' : ''}><FiSun />日间</span><span className={theme === 'dark' ? 'selected' : ''}><FiMoon />夜间</span></button><SoftwareUpdates /></div>
@@ -94,7 +101,7 @@ function Workspace() {
     <header className="studio-topbar"><div className="workspace-breadcrumb"><FiGrid /><span>工作台</span><i>/</i><strong>{page.label}</strong></div><div className="topbar-tools"><WorkspaceGreeting /><button className="topbar-config" onClick={() => navigate('settings')}><FiSettings />价格配置</button></div></header>
     <div className="workspace-content" ref={workspaceScroll}><div className="page-heading"><div className="page-heading-copy"><LaunchGreeting /><h1>{page.title}</h1><p>{page.subtitle}</p></div><div className="workspace-stats" hidden={pageId !== 'calculator'}><div className="stat-card balance-card"><div><span>{customPrice ? '临时单价' : selectedProduct?.['名称']} · 当前单价</span><strong>¥{customPrice || selectedProduct?.['单价'] || 0}<small> / ㎡</small></strong></div></div><div className="stat-card"><div><span>现成规格</span><strong>{config['现成尺寸价格'].length}<small> 款</small></strong></div></div></div></div>
     {snapshot.error && pageId !== 'settings' && <div role="alert" className="notice warning">{snapshot.error}<button className="text-button" onClick={() => navigate('settings')}>检查配置 <FiArrowUpRight /></button></div>}
-    <div hidden={pageId !== 'calculator'}><div className="calculator-layout"><MaterialPicker products={config['产品']} selectedProduct={selectedProduct} onSelectProduct={p => setSelectedId(p['编号'])} customPrice={customPrice} onCustomPriceChange={setCustomPrice} searchText={globalSearch} onSearchTextChange={setGlobalSearch} /><QuoteCalculator config={config} selectedProduct={selectedProduct} customPrice={customPrice} readyMade={readyMade} onReadyMadeChange={setReadyMade} /></div></div>
+    <div hidden={pageId !== 'calculator'}><div className="calculator-layout"><MaterialPicker products={config['产品']} selectedProduct={selectedProduct} onSelectProduct={selectMaterial} customPrice={customPrice} onCustomPriceChange={changeCustomPrice} keepCustomPrice={keepCustomPrice} onKeepCustomPriceChange={setKeepCustomPrice} onResetCustomPrice={resetCustomPrice} /><QuoteCalculator config={config} selectedProduct={selectedProduct} customPrice={customPrice} keepCustomPrice={keepCustomPrice} onResetCustomPrice={resetCustomPrice} readyMade={readyMade} onReadyMadeChange={setReadyMade} /></div></div>
     <div hidden={pageId !== 'images'}>{openedPages.has('images') && <Suspense fallback={<div className="studio-card page-loading">正在打开图片工具…</div>}><div className="studio-card studio-image-editor"><ImageEditor /></div></Suspense>}</div>
     <div hidden={pageId !== 'table'}>{openedPages.has('table') && <Suspense fallback={<div className="studio-card page-loading">正在打开价格表…</div>}><PriceTable config={config} /></Suspense>}</div>
     <div hidden={pageId !== 'settings'}>{openedPages.has('settings') && <Suspense fallback={<div className="studio-card page-loading">正在打开价格配置…</div>}><PriceSettings snapshot={snapshot} onReload={reload} onSave={save} /></Suspense>}</div>

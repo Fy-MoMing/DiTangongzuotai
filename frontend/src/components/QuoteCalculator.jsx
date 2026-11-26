@@ -1,11 +1,34 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { FiCopy, FiPlus, FiTrash2, FiCheck, FiArrowUpRight, FiLayers } from 'react-icons/fi';
+import { FiCopy, FiPlus, FiTrash2, FiCheck, FiArrowUpRight, FiLayers, FiSliders } from 'react-icons/fi';
 import { calculateQuote, formatQuoteForCopy } from '../utils/pricing';
 import { money } from '../utils/format';
 import QuoteLines from './QuoteLines';
 import SpotlightCard from './react-bits/SpotlightCard';
-export default function QuoteCalculator({ selectedProduct, customPrice, config, readyMade, onReadyMadeChange }) {
+export default function QuoteCalculator({ selectedProduct, customPrice, keepCustomPrice, onResetCustomPrice, config, readyMade, onReadyMadeChange }) {
   const [value, onDimensionsChange] = useState('');
+  const dimensionInput = useRef(null);
+  const replacingAll = useRef(false);
+  useEffect(() => {
+    const input = dimensionInput.current;
+    const beforeInput = event => {
+      replacingAll.current = Boolean(input.value.trim() && input.selectionStart === 0 && input.selectionEnd === input.value.length && !event.inputType.startsWith('history'));
+    };
+    const afterInput = () => {
+      if (customPrice && !keepCustomPrice && replacingAll.current) {
+        onDimensionsChange(input.value);
+        onResetCustomPrice();
+      }
+      replacingAll.current = false;
+    };
+    input.addEventListener('beforeinput', beforeInput);
+    input.addEventListener('input', afterInput);
+    return () => { input.removeEventListener('beforeinput', beforeInput); input.removeEventListener('input', afterInput); };
+  }, [customPrice, keepCustomPrice, onResetCustomPrice]);
+  const changeDimensions = event => {
+    const next = event.target.value;
+    if (customPrice && !keepCustomPrice && !next.trim()) onResetCustomPrice();
+    onDimensionsChange(next);
+  };
   const [squareStyle, setSquareStyle] = useState(false);
   const [basket, setBasket] = useState([]);
   const [copyError, setCopyError] = useState('');
@@ -32,8 +55,9 @@ export default function QuoteCalculator({ selectedProduct, customPrice, config, 
   useEffect(() => { const onKey = e => { if (e.key === 'Insert' && priceText) { e.preventDefault(); void copy(priceText); } }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey); }, [priceText, copy]);
   return <section className="studio-card quote-card">
     <div className="section-heading"><span className="step-number">02</span><div><h2>尺寸与报价</h2><p>输入尺寸，即时算价并自动复制</p></div><span className="live-indicator"><i />实时计算</span></div>
+    {customPrice > 0 && <div className="custom-price-notice" role="status"><FiSliders aria-hidden="true" /><div><strong>正在使用临时价 ¥{customPrice}/㎡</strong><span>{keepCustomPrice ? '已开启连续使用，换单后仍保留' : '仅本单有效 · 换单时恢复默认'}</span></div><button className="text-button" onClick={onResetCustomPrice}>恢复默认</button></div>}
     <div className="dimension-label"><label htmlFor="dimensions">地毯尺寸 <span>厘米</span></label><label className="toggle-label"><input type="checkbox" checked={readyMade} onChange={e => onReadyMadeChange(e.target.checked)} /><span className="toggle-track" />现成价格优先</label></div>
-    <textarea id="dimensions" className="dimension-input" value={value} onChange={e => onDimensionsChange(e.target.value)} placeholder={'每行一个尺寸：宽*长 或 宽*长*数量\n例如：120*150\n90*200*3'} spellCheck={false} />
+    <textarea ref={dimensionInput} id="dimensions" className="dimension-input" value={value} onChange={changeDimensions} placeholder={'每行一个尺寸：宽*长 或 宽*长*数量\n例如：120*150\n90*200*3'} spellCheck={false} />
     <div className="dimension-help"><span><kbd>*</kbd> 连接宽长，第三个数代表数量</span><button className="text-button" onClick={() => onDimensionsChange(value ? `${value}\n120*150` : '120*150')}>试填示例 <FiArrowUpRight /></button></div>
     {quote.rows.some(r => r.splicing) && <div className="notice warning">{selectedProduct?.['名称']}最大宽度 {selectedProduct?.['最大宽度'] || 200} 厘米，超宽尺寸需要拼接。</div>}
     {typeof selectedProduct?.['单位重量'] === 'object' && <label className="weight-option"><input type="checkbox" checked={squareStyle} onChange={e => setSquareStyle(e.target.checked)} />使用方格款式重量（{selectedProduct['单位重量']['方格款式']} kg / ㎡）</label>}

@@ -83,6 +83,7 @@ async function main() {
     await page.getByRole('button',{name:/复制所有尺寸价格/}).click();
     await delay(650);
     assert.equal(readClipboard(),'60*90 = 18.8元\n123*540 = 265.68元\n总价格284.48元');
+    await page.getByRole('checkbox',{name:'连续使用临时价',exact:true}).check();
     await page.getByRole('spinbutton',{name:'输入自定义单价 (元/㎡)',exact:true}).fill('74.88');
     await page.locator('#dimensions').fill('100*100');
     await page.getByText('¥74.88',{exact:true}).first().waitFor();
